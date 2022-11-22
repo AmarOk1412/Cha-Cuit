@@ -27,7 +27,7 @@ duration: 6h
 1. Dans un bol, mélanger le sucre, le sirop, la fécule, les œufs battus et le beurre préalablement fondu.
 2. Mettre les noix de pécan sur le fond de tarte.
 3. Garnir du mélange de l'étape 1.
-4. Enfourner 45 min à 180°C
+4. Enfourner 45 min à 180°C.
 
 # Notes
 
