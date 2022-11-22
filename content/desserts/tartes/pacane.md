@@ -5,11 +5,11 @@ tags: ["sucré", "noix", "québec", "pâtisserie"]
 duration: 6h
 ---
 
-![Tarte pacane](pacane.jpg)
+![Tarte pacane](/desserts/tartes/pacane.jpg)
 
 # Ingrédients
 
-+ [1 pâte sucrée](pates/pate-sucree.md)
++ [1 pâte sucrée](/desserts/pates/pate-sucree)
 
 + 50g de sucre
 + 200ml sirop de canne
@@ -20,7 +20,7 @@ duration: 6h
 
 # Équipement
 
-+ [Voir pâte sucrée](pates/pate-sucree.md)
++ [Voir pâte sucrée](/desserts/pates/pate-sucree)
 
 # Préparation
 

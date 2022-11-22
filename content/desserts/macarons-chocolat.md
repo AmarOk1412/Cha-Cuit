@@ -5,7 +5,7 @@ tags: ["sucré", "chocolat", "pâtisserie"]
 duration: 12h
 ---
 
-![Macarons chocolat](macarons-chocolat.jpg)
+![Macarons chocolat](/desserts/macarons-chocolat.jpg)
 
 # Ingrédients
 

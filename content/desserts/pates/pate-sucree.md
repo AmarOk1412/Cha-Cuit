@@ -5,7 +5,7 @@ tags: ["sucré", "pâtisserie"]
 duration: 2h15
 ---
 
-![Pâte Sucrée](pate-sucree.jpg)
+![Pâte Sucrée](/desserts/pates/pate-sucree.jpg)
 
 # Ingrédients
 

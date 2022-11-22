@@ -1,0 +1,4 @@
+baseURL = 'https://enconn.fr'
+languageCode = 'fr-FR'
+title = 'Les recettes de Comte Blinou'
+theme = 'ananke'
