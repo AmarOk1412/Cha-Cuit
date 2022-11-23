@@ -3,9 +3,8 @@ title: Pâte Sucrée
 date: 2022-20-11
 tags: ["sucré", "pâtisserie"]
 duration: 2h15
+featured_image: "/desserts/pates/pate-sucree.jpg"
 ---
-
-![Pâte Sucrée](/desserts/pates/pate-sucree.jpg)
 
 # Ingrédients
 
