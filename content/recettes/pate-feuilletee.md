@@ -19,6 +19,7 @@ thumbnail: "/step-2-feuilletee.jpg"
 + Rouleau à pâtisserie
 + film alimentaire
 
+||
 # Préparation
 
 1. Mettre le beurre froid dans du film et l'aplatir doucement afin de faire

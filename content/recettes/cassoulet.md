@@ -29,6 +29,7 @@ thumbnail: "/cassoulet.jpg"
 + 2 poêles
 + Papier absorbant
 
+||
 # Préparation
 
 1. La veille faire tremper les haricots dans un saladier d'eau froide. Plonger le petit salé dans un saladier

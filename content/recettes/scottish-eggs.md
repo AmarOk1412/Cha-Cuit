@@ -23,6 +23,7 @@ thumbnail: "/scottish-eggs.jpg"
 + 1 plaque de cuisson (ou friteuse)
 + 1 casserole
 
+||
 # Préparation
 
 1. Faire cuire 2 œufs durs (12 minutes), puis refroidir.

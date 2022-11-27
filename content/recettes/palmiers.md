@@ -9,7 +9,7 @@ thumbnail: "/palmier-big.jpg"
 # Ingrédients
 
 + Sucre
-+ [1 pâte feuilletée](pate-feuilletee)
++ [1 pâte feuilletée](/recettes/pate-feuilletee)
 
 # Équipement
 

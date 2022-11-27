@@ -21,6 +21,7 @@ duration: 1h
 + 1 marmite
 + 1 casserole
 
+||
 # Préparation
 
 1. Dans le cuiseur, préparer le riz

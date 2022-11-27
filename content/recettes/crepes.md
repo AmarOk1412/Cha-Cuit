@@ -21,6 +21,7 @@ duration: 1h
 + 1 louche
 + 1 poele
 
+||
 # Préparation
 
 1. Battre les œufs, ajouter le lait, l'huile et ajouter peu à peu le sucre puis la farine en mélangeant

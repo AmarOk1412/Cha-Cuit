@@ -8,7 +8,7 @@ thumbnail: "/pacane.jpg"
 
 # Ingrédients
 
-+ [1 pâte sucrée](pate-sucree)
++ [1 pâte sucrée](/recettes/pate-sucree)
 
 + 50g de sucre
 + 200ml sirop de canne
@@ -19,7 +19,9 @@ thumbnail: "/pacane.jpg"
 
 # Équipement
 
-+ [Voir pâte sucrée](pate-sucree)
++ [Voir pâte sucrée](/recettes/pate-sucree)
+
+||
 
 # Préparation
 

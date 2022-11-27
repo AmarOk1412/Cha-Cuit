@@ -42,6 +42,7 @@ thumbnail: "/macarons-chocolat.jpg"
 + 1 contenant hermétique
 + 1 casserole
 
+||
 # Préparation
 
 ## Macarons

@@ -15,6 +15,7 @@ thumbnail: "/pate-sucree.jpg"
 + 1 œuf
 + 1/2 c. café. d'extrait de vanille
 
+||
 # Équipement
 
 + Four
