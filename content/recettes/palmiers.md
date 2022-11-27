@@ -18,6 +18,8 @@ thumbnail: "/palmier-big.jpg"
 + Papier parchemin
 + 1 couteau
 
+||
+
 # Préparation
 
 1. Préchauffer le four à 190°C

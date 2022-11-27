@@ -1,0 +1,67 @@
+{{ define "main" }}
+  {{ $lastmodstr := (partial "date.html" (dict "date" .Lastmod "language" $.Page.Language "format" "long")) }}
+  {{ $datestr := (partial "date.html" (dict "date" .Date "language" $.Page.Language "format" "long")) }}
+
+  {{ if .Params.thumbnail }}
+  <div class="relative max-w-5xl mx-auto px-4">
+    <img src="{{ .Params.thumbnail }}" class="rounded-lg shadow-sm w-full object-contain" />
+    {{ if not (or (or .Site.Params.hideMeta .Params.hideMeta) false) }}
+    <div class="absolute top-4 right-8 rounded shadow bg-white text-gray-900 dark:bg-gray-900 dark:text-white px-2 py-0.5">
+      {{ $datestr }}
+    </div>
+    {{ end }}
+  </div>
+  {{ end }}
+
+  <article class="prose max-w-5xl mx-auto px-4">
+
+    <h1 class="text-2xl font-bold mb-2">{{ .Title }}</h1>
+    {{ if not (or (or .Site.Params.hideMeta .Params.hideMeta) false) }}
+    <h5 class="text-sm flex items-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="mr-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <rect x="4" y="5" width="16" height="16" rx="2" />
+        <line x1="16" y1="3" x2="16" y2="7" />
+        <line x1="8" y1="3" x2="8" y2="7" />
+        <line x1="4" y1="11" x2="20" y2="11" />
+        <rect x="8" y="15" width="2" height="2" />
+      </svg>
+      {{ $datestr | i18n "postedOnDate" }}
+      {{ if ne $datestr $lastmodstr }}
+        &nbsp{{ $lastmodstr | i18n "lastModified" }}</h5><h5 class="text-sm flex items-center">
+      {{ else }}
+        &nbsp;&bull;&nbsp;
+      {{ end }}
+      <svg xmlns="http://www.w3.org/2000/svg" class="mr-1" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+        <circle cx="12" cy="12" r="9" />
+        <polyline points="12 7 12 12 15 15" />
+      </svg>
+      {{ .Params.duration }}&nbsp;
+      {{ if not (or (or .Site.Params.hideOtherLanguages .Params.hideOtherLanguages) false) }}
+        {{ if .IsTranslated -}}
+          {{- $sortedTranslations := sort .Translations "Site.Language.Weight" -}}
+          {{- $links := apply $sortedTranslations "partial" "translation_link.html" "." -}}
+          {{- $cleanLinks := apply $links "chomp" "." -}}
+          {{- $linksOutput := delimit $cleanLinks (i18n "translationsSeparator") -}}
+          &nbsp;&bull;&nbsp;{{ i18n "translationsLabel" }}&nbsp;{{ $linksOutput }}
+        {{- end }}
+      {{ end }}
+    </h5>
+    <br>
+    {{ end }}
+
+    {{ $cols := split .RawContent "||" }}
+
+    <div style="display: flex; flex-direction: row;" >
+    {{ range $cols }}
+      <div class="content-column">
+      {{ . | markdownify }}
+      </div>
+    {{ end }}
+    </div>
+
+  </article>
+
+  {{- partial "social.html" . -}}
+{{ end }}
