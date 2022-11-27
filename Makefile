@@ -4,4 +4,4 @@ publish:
 	hugo
 
 watch:
-	hugo server
+	hugo serve

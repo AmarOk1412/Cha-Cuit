@@ -1,14 +1,14 @@
 ---
 title: Tarte pacane
-date: 2022-20-11
-tags: ["sucré", "noix", "québec", "pâtisserie"]
+date: 2022-11-20
+tags: ["sucré", "noix", "québec", "pâtisserie", "desserts", "tartes"]
 duration: 6h
-featured_image: "/desserts/tartes/pacane.jpg"
+thumbnail: "/pacane.jpg"
 ---
 
 # Ingrédients
 
-+ [1 pâte sucrée](/desserts/pates/pate-sucree)
++ [1 pâte sucrée](pate-sucree)
 
 + 50g de sucre
 + 200ml sirop de canne
@@ -19,7 +19,7 @@ featured_image: "/desserts/tartes/pacane.jpg"
 
 # Équipement
 
-+ [Voir pâte sucrée](/desserts/pates/pate-sucree)
++ [Voir pâte sucrée](pate-sucree)
 
 # Préparation
 

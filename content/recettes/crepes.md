@@ -1,7 +1,7 @@
 ---
 title: Crêpes
-date: 2022-20-11
-tags: ["sucré"]
+date: 2022-11-20
+tags: ["sucré", "repas"]
 duration: 1h
 ---
 

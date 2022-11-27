@@ -1,9 +1,9 @@
 ---
 title: Macarons chocolats
-date: 2022-20-11
-tags: ["sucré", "chocolat", "pâtisserie"]
+date: 2022-11-20
+tags: ["sucré", "chocolat", "pâtisserie", "desserts"]
 duration: 12h
-featured_image: "/desserts/macarons-chocolat.jpg"
+thumbnail: "/macarons-chocolat.jpg"
 ---
 
 # Ingrédients

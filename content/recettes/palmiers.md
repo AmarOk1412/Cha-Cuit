@@ -1,15 +1,15 @@
 ---
 title: Palmiers
-date: 2022-22-11
-tags: ["sucré", "pâtisserie"]
+date: 2022-11-22
+tags: ["sucré", "pâtisserie", "desserts"]
 duration: 1h
-featured_image: "/desserts/palmier-big.jpg"
+thumbnail: "/palmier-big.jpg"
 ---
 
 # Ingrédients
 
 + Sucre
-+ [1 pâte feuilletée](/desserts/pates/pate-feuilletee)
++ [1 pâte feuilletée](pate-feuilletee)
 
 # Équipement
 
@@ -24,16 +24,16 @@ featured_image: "/desserts/palmier-big.jpg"
 2. Abaisser la pâte en un rectangle 3 fois plus long que large.
 3. Sucrer les 2 côtés et rouler chaque bout pour avoir une forme de coeur de profil.
 
-![La forme de la pâte](/desserts/step-3-palmier.jpg)
+![La forme de la pâte](step-3-palmier.jpg)
 
 4. Couper en morceaux. Sucrer et aplatir les 2 côtés.
 
-![Prêt à enfourner](/desserts/step-4-palmier.jpg)
+![Prêt à enfourner](step-4-palmier.jpg)
 
 5. Enfourner sur une plaque avec du papier parchemin 40 minutes.
 6. Laisser refroidir.
 
-![Final](/desserts/step-6-palmier.jpg)
+![Final](step-6-palmier.jpg)
 
 
 # Notes
