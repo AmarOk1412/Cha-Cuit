@@ -44,19 +44,17 @@ theme = "blist"
   # Can be used at site level or page level
   hideOtherLanguages = false
 
-#[params.homepage.social]
-#  # Global params common for both languages
-#  title = "Follow me"
-#  description = "I work on everything coding and tweet developer memes"
-#  twitter = "https://twitter.com/"
-#  linkedin = "https://linkedin.com/in/"
-#  xing = "https://www.xing.com/profile/"
-#  github = "https://github.com/"
-#  medium = "https://medium.com/"
-#  reddit = "https://reddit.com/"
-#  dribbble = "https://dribbble.com/"
-#  stackoverflow = "https://stackoverflow.com/"
-#  tiktok = "https://tiktok.com"
+  # Details
+  introTitle = "Des recettes collaboratives !"
+  introSubtitle = "Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont versionnées et il est donc possible de voir l'évolution des améliorations testées."
+  introPhoto = "/logo.png"
+
+[params.homepage.social]
+  # Global params common for both languages
+  title = "Suivez-nous !"
+  description = "On est présent à d'autres places :"
+  twitter = "https://twitter.com/AmarOk1412"
+  github = "https://github.com/AmarOk1412/Cha-cuit"
 
 [build]
   writeStats = true

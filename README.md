@@ -4,6 +4,8 @@
 
 Et autres expérimentations
 
+![](static/screenshot.png)
+
 ## TODO
 
 + 2 colonnes pour les recettes.
@@ -12,3 +14,5 @@ Et autres expérimentations
 + Define a structure (for pictures)
 + add button to export a recipe
 + Fediverse
++ Voir version précédente (git log)
++ Build instructions and deploy

@@ -1,6 +1,6 @@
 ---
 title: Chili con carne (à l'européenne)
-date: 2022-26-11
+date: 2022-11-26
 tags: ["salé", "pois"]
 duration: 1h
 ---
