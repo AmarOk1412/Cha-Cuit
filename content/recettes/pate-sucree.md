@@ -15,7 +15,6 @@ thumbnail: "/pate-sucree.jpg"
 + 1 œuf
 + 1/2 c. café. d'extrait de vanille
 
-||
 # Équipement
 
 + Four
@@ -23,6 +22,8 @@ thumbnail: "/pate-sucree.jpg"
 + 1 moule à tarte
 + Billes de porcelaine (ou pois chiches)
 + 1 fouet
+
+||
 
 # Préparation
 

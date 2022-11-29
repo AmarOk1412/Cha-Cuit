@@ -45,7 +45,7 @@ theme = "blist"
   hideOtherLanguages = false
 
   # Details
-  introTitle = "Des recettes collaboratives !"
+  introTitle = "Des recettes cha-tisfaisantes !"
   introSubtitle = "Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont versionnées et il est donc possible de voir l'évolution des améliorations testées."
   introPhoto = "/logo.png"
 
