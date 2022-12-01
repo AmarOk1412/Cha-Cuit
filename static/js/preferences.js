@@ -34,6 +34,12 @@ function ingredient_density(ingredient) {
         return .410
     } else if (ingredient === "cacao") {
         return .520
+    } else if (ingredient === "almond flour") {
+        return 1.09
+    } else if (ingredient === "chocolate") {
+        return .64
+    } else if (ingredient === "cream") {
+        return 1
     }
 
     return 1
@@ -62,6 +68,12 @@ function is_liquid(ingredient) {
         return false
     } else if (ingredient === "cacao") {
         return false
+    } else if (ingredient === "almond flour") {
+        return false
+    } else if (ingredient === "chocolate") {
+        return false
+    } else if (ingredient === "cream") {
+        return true
     }
 
     return false
@@ -90,6 +102,12 @@ function to_ingredient(string) {
         return "oats"
     } else if (string.includes("cacao")) {
         return "cacao"
+    } else if (string.includes("poudre d’amandes")) {
+        return "almond flour"
+    } else if (string.includes("chocolat")) {
+        return "chocolate"
+    } else if (string.includes("crême")) {
+        return "cream"
     }
 
     return ""
@@ -100,29 +118,29 @@ var prefCelsius = true
 var prefCups = false
 
 function grams_to_cups(value, ingredient) {
-    return Math.round(parseInt(value).toFixed(2) / (cups_size * ingredient_density(ingredient)))
+    return (parseFloat(value).toFixed(5) / (cups_size * ingredient_density(ingredient))).toFixed(3)
 }
 
 function cups_to_grams(value, ingredient) {
-    return Math.round(parseInt(value).toFixed(2) * cups_size * ingredient_density(ingredient))
+    return Math.round(parseFloat(value).toFixed(5) * cups_size * ingredient_density(ingredient))
 }
 
 // Canadian cup = 250mL
 function liter_to_grams(value, ingredient) {
-    return Math.round(parseInt(value).toFixed(2) * 1000. * ingredient_density(ingredient))
+    return Math.round(parseFloat(value).toFixed(2) * 1000. * ingredient_density(ingredient))
 }
 
 function grams_to_liter(value, ingredient) {
-    return Math.round(parseInt(value).toFixed(2) / (1000. * ingredient_density(ingredient)))
+    return Math.round(parseFloat(value).toFixed(2) / (1000. * ingredient_density(ingredient)))
 }
 
 // Canadian cup = 250mL
 function cups_to_liter(value) {
-    return parseInt(value).toFixed(2) / 4
+    return parseFloat(value).toFixed(2) / 4
 }
 
 function liter_to_cups(value) {
-    return parseInt(value).toFixed(2) * 4
+    return parseFloat(value).toFixed(2) * 4
 }
 
 // TODO localisation
@@ -141,27 +159,36 @@ function parse_page() {
     }
 
     if (prefCups) {
-        for (const match of body.matchAll(/([0-9]+)g (\w+.\w+)/g)) {
+        for (const match of body.matchAll(/([0-9]+)g (\w+.\w+.\w+.\w+)/g)) {
             const ingredient = to_ingredient(match[2])
             if (ingredient === "")
                 continue
             const newString = grams_to_cups(match[1], ingredient) + " tasse(s) " + match[2]
             body = body.replaceAll(match[0], newString)
         }
-        for (const match of body.matchAll(/([0-9]+)ml (\w+.\w+)/ig)) {
-            const newString = liter_to_cups(parseInt(match[1])) / 1000 + " tasse(s) " + match[2]
+        for (const match of body.matchAll(/([0-9]+)ml (\w+.\w+.\w+.\w+)/ig)) {
+            const ingredient = to_ingredient(match[2])
+            if (ingredient === "")
+                continue
+            const newString = liter_to_cups(parseFloat(match[1])) / 1000 + " tasse(s) " + match[2]
             body = body.replaceAll(match[0], newString)
         }
-        for (const match of body.matchAll(/([0-9]+)cl (\w+.\w+)/ig)) {
-            const newString = liter_to_cups(parseInt(match[1])) / 100 + " tasse(s) " + match[2]
+        for (const match of body.matchAll(/([0-9]+)cl (\w+.\w+.\w+.\w+)/ig)) {
+            const ingredient = to_ingredient(match[2])
+            if (ingredient === "")
+                continue
+            const newString = liter_to_cups(parseFloat(match[1])) / 100 + " tasse(s) " + match[2]
             body = body.replaceAll(match[0], newString)
         }
-        for (const match of body.matchAll(/([0-9]+)l (\w+.\w+)/ig)) {
-            const newString = liter_to_cups(parseInt(match[1])) + " tasse(s) " + match[2]
+        for (const match of body.matchAll(/([0-9]+)l (\w+.\w+.\w+.\w+)/ig)) {
+            const ingredient = to_ingredient(match[2])
+            if (ingredient === "")
+                continue
+            const newString = liter_to_cups(parseFloat(match[1])) + " tasse(s) " + match[2]
             body = body.replaceAll(match[0], newString)
         }
     } else {
-        for (const match of body.matchAll(/([0-9]+) tasse\(s\) (\w+.\w+)/g)) {
+        for (const match of body.matchAll(/([0-9\.]+) tasse\(s\) (\w+.\w+.\w+.\w+)/g)) {
             const ingredient = to_ingredient(match[2])
             if (ingredient === "")
                 continue
