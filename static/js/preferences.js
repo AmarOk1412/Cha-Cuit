@@ -146,6 +146,8 @@ function liter_to_cups(value) {
 // TODO localisation
 function parse_page() {
     var article = document.getElementsByClassName("prose")
+    if (article.length === 0)
+        return
     var body = article[0].innerHTML
 
     if (prefCelsius) {
