@@ -29,7 +29,7 @@ thumbnail: "/scottish-eggs.jpg"
 1. Faire cuire 2 œufs durs (12 minutes), puis refroidir.
 2. Pendant ce temps, couper finement un oignon, et dans un bol, mélanger
 avec la viande hachée, la moutarde et les herbes dans un bol.
-3. Préchauffer le four à 180°C
+3. Préchauffer le four à 180°C.
 4. Ajouter de la farine dans un bol, battre les œufs restants dans un autre
 et ajouter la chapelure dans un dernier bol.
 
