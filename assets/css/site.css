@@ -59,10 +59,17 @@ body {
   margin-right: 64px;
 }
 
-.prose :not(.marquee) {
+.prose :not(.marquee)
+{
   color: inherit;
 }
 
-.prose > :not(.marquee) {
+.prose > :not(.marquee)
+{
   color: inherit;
+}
+
+.intro
+{
+  max-width: 1200px;
 }

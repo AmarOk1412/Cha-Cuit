@@ -46,7 +46,7 @@ theme = "blist"
 
   # Details
   introTitle = "Des recettes cha-tisfaisantes !"
-  introSubtitle = "Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont versionnées et il est donc possible de voir l'évolution des améliorations testées."
+  introSubtitle = "Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont en grandes parties réalisées avec l'aide de Kælinn."
   introPhoto = "/logo.png"
 
 [params.homepage.social]
