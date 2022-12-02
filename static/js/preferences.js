@@ -1,7 +1,6 @@
 // TODO license
-// TODO improve
 // TODO i18n
-// TODO check on new content
+// TODO docs
 function farenheit_to_celsius(value) {
     return Math.round(parseInt(value) / 1.8 - 32)
 }
@@ -143,75 +142,152 @@ function liter_to_cups(value) {
     return parseFloat(value).toFixed(2) * 4
 }
 
+function to_user(value) {
+    if (value > 0 && value < 0.15) {
+        return "⅛"
+    } else if (value >= 0.15 && value < 0.3) {
+        return "¼"
+    } else if (value >= 0.3 && value <= 0.4) {
+        return "⅓"
+    } else if (value >= 0.4 && value < 0.45) {
+        return "⅖"
+    } else if (value >= 0.45 && value < 0.55) {
+        return "½"
+    } else if (value >= 0.55 && value < 0.70) {
+        return "⅝"
+    } else if (value >= 0.70 && value < 0.85) {
+        return "⅔"
+    }
+    console.warn(value)
+    return "⅞"
+}
+
+function to_unit_span(standard_value, non_standard_value, showStandard, unit_type) {
+    var res = document.createElement("span")
+    res.className = unit_type
+    res.setAttribute("standard-text", standard_value)
+    res.setAttribute("non-standard-text", non_standard_value)
+    res.innerText = showStandard? standard_value : non_standard_value
+    return res
+}
+
+function use_standard(span, useStandard) {
+    if (useStandard) {
+        span.innerText = span.getAttribute("standard-text")
+    } else {
+        span.innerText = span.getAttribute("non-standard-text")
+    }
+}
+
+function update_spans() {
+    var temperatureSpans = document.getElementsByClassName("temperature")
+    for (var span of temperatureSpans) {
+        use_standard(span, prefCelsius)
+    }
+    var quantitySpans = document.getElementsByClassName("quantity")
+    for (var span of quantitySpans) {
+        use_standard(span, !prefCups)
+    }
+}
+
+function prepare_temperature_spans(body) {
+    for (const match of body.matchAll(/([0-9]+)°F/g)) {
+        farenheit_text = match[0]
+        celsius_text = farenheit_to_celsius(match[1]) + "°C"
+        var temp_span = to_unit_span(celsius_text, farenheit_text, prefCelsius, "temperature")
+        body = body.replaceAll(match[0], temp_span.outerHTML)
+    }
+    for (const match of body.matchAll(/([0-9]+)°C/g)) {
+        celsius_text = match[0]
+        farenheit_text = celsius_to_fahrenheit(match[1]) + "°F"
+        var temp_span = to_unit_span(celsius_text, farenheit_text, prefCelsius, "temperature")
+        body = body.replaceAll(match[0], temp_span.outerHTML)
+    }
+    return body
+}
+
+function cups_to_string(cups) {
+    console.warn("@@" + cups)
+    if (cups % 1 > 0) {
+        if (Math.floor(cups) === 0)
+            return to_user(cups % 1) + " tasse(s) "
+        else
+            return Math.floor(cups) + " tasse(s) " + to_user(cups % 1) + " "
+    }
+    else
+        return Math.floor(cups) + " tasse(s) "
+}
+
+function prepare_quantity_spans(body) {
+    const matches = (body, regex, toString, ratio) => {
+        for (const match of body.matchAll(regex)) {
+            const ingredient = to_ingredient(match[2])
+            if (ingredient === "")
+                continue
+            const span = toString(match, ingredient, ratio)
+            body = body.replaceAll(match[0], span.outerHTML)
+        }
+        return body
+    }
+
+    // Replace grams
+    body = matches(body, /([0-9]+)g (([\w’ê]+\s*){1,4})/g, (match, ingredient) => {
+        const cups =  grams_to_cups(match[1], ingredient)
+        const cups_str = cups_to_string(cups)
+        const cups_text = cups_str + match[2]
+        return to_unit_span(match[0], cups_text, !prefCups, "quantity")
+    })
+    // Replace liquids
+    const ratios_regex = [[1000, /([0-9]+)ml (([\w’ê]+\s*){1,4})/ig], [100, /([0-9]+)cl (([\w’ê]+\s*){1,4})/ig], [1, /([0-9]+)l (([\w’ê]+\s*){1,4})/ig]]
+    for (const ratio_regex of ratios_regex) {
+        body = matches(body, ratio_regex[1], (match, ingredient, ratio) => {
+            const cups =  liter_to_cups(parseFloat(match[1])) / ratio
+            const cups_str = cups_to_string(cups)
+            const cups_text = cups_str + match[2]
+            return to_unit_span(match[0], cups_text, !prefCups, "quantity")
+        }, ratio_regex[0])
+    }
+    // Replace cups
+    body = matches(body, /([0-9\.]+) tasse\(s\) (([\w’ê]+\s*){1,4})/g, (match, ingredient, ratio) => {
+        var standard_text = ''
+        if (is_liquid(ingredient)) {
+            var unit = 'L'
+            var quantity = cups_to_liter(match[1], ingredient)
+            if (quantity < 0.01) {
+                unit = 'mL'
+                quantity *= 1000
+            } else if (quantity < 1.0) {
+                unit = 'cL'
+                quantity *= 100
+            }
+            standard_text =  quantity + unit + " " + match[2]
+        } else {
+            standard_text = cups_to_grams(match[1], ingredient) + "g " + match[2]
+        }
+
+        return to_unit_span(standard_text, match[0], !prefCups, "quantity")
+    })
+
+    return body
+}
+
 // TODO localisation
 function parse_page() {
     var article = document.getElementsByClassName("prose")
     if (article.length === 0)
         return
+    // If parsed once, it's easy to invert
+    var parsedDiv = document.getElementsByClassName("temperature")
+    var quantityDiv = document.getElementsByClassName("quantity")
+    if (parsedDiv.length !== 0 || quantityDiv.length !== 0) {
+        update_spans()
+        return
+    }
+    // Else, regexes!
     var body = article[0].innerHTML
 
-    if (prefCelsius) {
-        for (const match of body.matchAll(/([0-9]+)°F/g)) {
-            body = body.replaceAll(match[0], farenheit_to_celsius(match[1]) + "°C")
-        }
-    } else {
-        for (const match of body.matchAll(/([0-9]+)°C/g)) {
-            body = body.replaceAll(match[0], celsius_to_fahrenheit(match[1]) + "°F")
-        }
-    }
-
-    if (prefCups) {
-        for (const match of body.matchAll(/([0-9]+)g (\w+.\w+.\w+.\w+)/g)) {
-            const ingredient = to_ingredient(match[2])
-            if (ingredient === "")
-                continue
-            const newString = grams_to_cups(match[1], ingredient) + " tasse(s) " + match[2]
-            body = body.replaceAll(match[0], newString)
-        }
-        for (const match of body.matchAll(/([0-9]+)ml (\w+.\w+.\w+.\w+)/ig)) {
-            const ingredient = to_ingredient(match[2])
-            if (ingredient === "")
-                continue
-            const newString = liter_to_cups(parseFloat(match[1])) / 1000 + " tasse(s) " + match[2]
-            body = body.replaceAll(match[0], newString)
-        }
-        for (const match of body.matchAll(/([0-9]+)cl (\w+.\w+.\w+.\w+)/ig)) {
-            const ingredient = to_ingredient(match[2])
-            if (ingredient === "")
-                continue
-            const newString = liter_to_cups(parseFloat(match[1])) / 100 + " tasse(s) " + match[2]
-            body = body.replaceAll(match[0], newString)
-        }
-        for (const match of body.matchAll(/([0-9]+)l (\w+.\w+.\w+.\w+)/ig)) {
-            const ingredient = to_ingredient(match[2])
-            if (ingredient === "")
-                continue
-            const newString = liter_to_cups(parseFloat(match[1])) + " tasse(s) " + match[2]
-            body = body.replaceAll(match[0], newString)
-        }
-    } else {
-        for (const match of body.matchAll(/([0-9\.]+) tasse\(s\) (\w+.\w+.\w+.\w+)/g)) {
-            const ingredient = to_ingredient(match[2])
-            if (ingredient === "")
-                continue
-            if (is_liquid(ingredient)) {
-                var unit = 'L'
-                var quantity = cups_to_liter(match[1], ingredient)
-                if (quantity < 0.01) {
-                    unit = 'mL'
-                    quantity *= 1000
-                } else if (quantity < 1.0) {
-                    unit = 'cL'
-                    quantity *= 100
-                }
-                const newString =  quantity + unit + " " + match[2]
-                body = body.replaceAll(match[0], newString)
-            } else {
-                const newString = cups_to_grams(match[1], ingredient) + "g " + match[2]
-                body = body.replaceAll(match[0], newString)
-            }
-        }
-    }
+    body = prepare_temperature_spans(body)
+    body = prepare_quantity_spans(body)
 
     article[0].innerHTML = body
 }

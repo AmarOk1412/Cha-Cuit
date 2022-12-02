@@ -9,7 +9,7 @@ thumbnail: "/tarte-pommes.jpg"
 # Ingrédients
 
 + [1 pâte brisée](/recettes/pate-brisee)
-+ [1 compote de pommes](/recettes/compote)
++ [1 compote de pommes](/recettes/compote-de-pommes)
 + 2 Pommes Cortland
 + Gelée de cidre
 
