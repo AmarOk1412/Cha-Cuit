@@ -23,7 +23,7 @@ theme = "blist"
   enableSearch = true
 
   # Custom copyright - optional
-  copyright = "Copyright © 2022 - Sébastien Blin"
+  copyright = "Copyright © 2022 - <a href=\"https://enconn.fr\">AmarOk</a>"
   favicon = "/favicon.svg"
 
   logo = "/logo.png"
@@ -46,7 +46,7 @@ theme = "blist"
 
   # Details
   introTitle = "Des recettes cha-tisfaisantes !"
-  introSubtitle = "Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont en grandes parties réalisées avec l'aide de Kælinn."
+  introSubtitle = "Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont en grande partie réalisées avec l'aide de Kælinn."
   introPhoto = "/logo.png"
 
 [params.homepage.social]
