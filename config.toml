@@ -1,4 +1,4 @@
-baseurl = "https://cha-cuit.enconn.fr"
+baseurl = "https://cha-cu.it"
 metaDataFormat = "yaml"
 title = "Cha-Cuit"
 theme = "blist"
