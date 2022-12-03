@@ -9,107 +9,49 @@ function celsius_to_fahrenheit(value) {
     return Math.round((parseInt(value) + 32) * 1.8)
 }
 
-// TODO group the 3 methods in an array
-function ingredient_density(ingredient) {
-    if (ingredient === "water") {
-        return 1
-    } else if (ingredient === "butter") {
-        return .911
-    } else if (ingredient === "flour") {
-        return .600
-    } else if (ingredient === "sugar") {
-        return .845
-    } else if (ingredient === "milk") {
-        return 1.03
-    } else if (ingredient === "salt") {
-        return 1.217
-    } else if (ingredient === "honey") {
-        return 1.420
-    } else if (ingredient === "oil") {
-        return .918
-    } else if (ingredient === "rice") {
-        return .850
-    } else if (ingredient === "oats") {
-        return .410
-    } else if (ingredient === "cacao") {
-        return .520
-    } else if (ingredient === "almond flour") {
-        return 1.09
-    } else if (ingredient === "chocolate") {
-        return .64
-    } else if (ingredient === "cream") {
-        return 1
+const INGREDIENT_DATA = [
+    ["eau", "water", 1, true],
+    ["beurre", "butter", .911, false],
+    ["farine", "flour", .600, false],
+    ["sucre", "sugar", .845, false],
+    ["lait", "milk", 1.03, true],
+    ["sel", "salt", 1.217, false],
+    ["miel", "honey", 1.420, true],
+    ["huile", "oil", .918, true],
+    ["riz", "rice", .850, false],
+    ["amandes", "oats", .410, false],
+    ["cacao", "cacao", .520, false],
+    ["poudre d'amande", "almond flour", 1.09, false],
+    ["chocolat", "chocolate", .64, false],
+    ["crême", "cream", 1, true]
+];
+
+function to_ingredient(string) {
+    for (const [fr_ingredient, ingredient, density, isLiquid] of INGREDIENT_DATA) {
+        if (string.includes(fr_ingredient)) {
+            return ingredient;
+        }
     }
 
-    return 1
+    return "";
+}
+
+function ingredient_density(ingredient) {
+    for (const [fr_ingredient, ingredientName, density, isLiquid] of INGREDIENT_DATA) {
+        if (ingredientName === ingredient) {
+            return density;
+        }
+    }
+    return 1;
 }
 
 function is_liquid(ingredient) {
-    if (ingredient === "water") {
-        return true
-    } else if (ingredient === "butter") {
-        return false
-    } else if (ingredient === "flour") {
-        return false
-    } else if (ingredient === "sugar") {
-        return false
-    } else if (ingredient === "milk") {
-        return true
-    } else if (ingredient === "salt") {
-        return false
-    } else if (ingredient === "honey") {
-        return true
-    } else if (ingredient === "oil") {
-        return true
-    } else if (ingredient === "rice") {
-        return false
-    } else if (ingredient === "oats") {
-        return false
-    } else if (ingredient === "cacao") {
-        return false
-    } else if (ingredient === "almond flour") {
-        return false
-    } else if (ingredient === "chocolate") {
-        return false
-    } else if (ingredient === "cream") {
-        return true
+    for (const [fr_ingredient, ingredientName, density, isLiquid] of INGREDIENT_DATA) {
+        if (ingredientName === ingredient) {
+            return isLiquid;
+        }
     }
-
-    return false
-}
-
-function to_ingredient(string) {
-    if (string.includes("eau")) {
-        return "water"
-    } else if (string.includes("beurre")) {
-        return "butter"
-    } else if (string.includes("farine")) {
-        return "flour"
-    } else if (string.includes("sucre")) {
-        return "sugar"
-    } else if (string.includes("lait")) {
-        return "milk"
-    } else if (string.includes("sel")) {
-        return "salt"
-    } else if (string.includes("honey")) {
-        return "honey"
-    } else if (string.includes("huile")) {
-        return "oil"
-    } else if (string.includes("riz")) {
-        return "rice"
-    } else if (string.includes("avoine")) {
-        return "oats"
-    } else if (string.includes("cacao")) {
-        return "cacao"
-    } else if (string.includes("poudre d’amandes")) {
-        return "almond flour"
-    } else if (string.includes("chocolat")) {
-        return "chocolate"
-    } else if (string.includes("crême")) {
-        return "cream"
-    }
-
-    return ""
+    return false;
 }
 
 var cups_size = 250. // mL (Canadian size) - US = 236.588236
@@ -158,7 +100,6 @@ function to_user(value) {
     } else if (value >= 0.70 && value < 0.85) {
         return "⅔"
     }
-    console.warn(value)
     return "⅞"
 }
 
