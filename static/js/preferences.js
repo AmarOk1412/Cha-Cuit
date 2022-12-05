@@ -148,7 +148,6 @@ function prepare_temperature_spans(body) {
 }
 
 function cups_to_string(cups) {
-    console.warn("@@" + cups)
     if (cups % 1 > 0) {
         if (Math.floor(cups) === 0)
             return to_user(cups % 1) + " tasse(s) "
@@ -171,6 +170,8 @@ function prepare_quantity_spans(body) {
         return body
     }
 
+    var prev_body = body
+
     // Replace grams
     body = matches(body, /([0-9]+)g (([\w’ê]+\s*){1,4})/g, (match, ingredient) => {
         const cups =  grams_to_cups(match[1], ingredient)
@@ -188,26 +189,29 @@ function prepare_quantity_spans(body) {
             return to_unit_span(match[0], cups_text, !prefCups, "quantity")
         }, ratio_regex[0])
     }
-    // Replace cups
-    body = matches(body, /([0-9\.]+) tasse\(s\) (([\w’ê]+\s*){1,4})/g, (match, ingredient, ratio) => {
-        var standard_text = ''
-        if (is_liquid(ingredient)) {
-            var unit = 'L'
-            var quantity = cups_to_liter(match[1], ingredient)
-            if (quantity < 0.01) {
-                unit = 'mL'
-                quantity *= 1000
-            } else if (quantity < 1.0) {
-                unit = 'cL'
-                quantity *= 100
+    // Do not replace if already modified (to not pass again on same values)
+    if (prev_body === body) {
+        // Replace cups
+        body = matches(body, /([0-9\.]+) tasse\(s\) (([\w’ê]+\s*){1,4})/g, (match, ingredient, ratio) => {
+            var standard_text = ''
+            if (is_liquid(ingredient)) {
+                var unit = 'L'
+                var quantity = cups_to_liter(match[1], ingredient)
+                if (quantity < 0.01) {
+                    unit = 'mL'
+                    quantity *= 1000
+                } else if (quantity < 1.0) {
+                    unit = 'cL'
+                    quantity *= 100
+                }
+                standard_text =  quantity + unit + " " + match[2]
+            } else {
+                standard_text = cups_to_grams(match[1], ingredient) + "g " + match[2]
             }
-            standard_text =  quantity + unit + " " + match[2]
-        } else {
-            standard_text = cups_to_grams(match[1], ingredient) + "g " + match[2]
-        }
 
-        return to_unit_span(standard_text, match[0], !prefCups, "quantity")
-    })
+            return to_unit_span(standard_text, match[0], !prefCups, "quantity")
+        })
+    }
 
     return body
 }
