@@ -48,7 +48,7 @@
 
     {{ $cols := split .RawContent "||" }}
 
-    <div style="display: flex; flex-direction: row;" >
+    <div class="article-flex" >
     {{ range $cols }}
       <div class="content-column">
       {{ . | markdownify }}
