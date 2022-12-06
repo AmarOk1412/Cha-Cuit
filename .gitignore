@@ -3,3 +3,5 @@ public
 *.lock.json
 node_modules/
 hugo_stats.json
+target
+*.lock
