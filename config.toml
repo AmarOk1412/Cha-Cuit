@@ -10,9 +10,13 @@ theme = "blist"
     url = "/recettes"
     weight = 1
   [[menu.main]]
+    name = "Fediverse"
+    url = "/fediverse"
+    weight = 2
+  [[menu.main]]
     name = "Tags"
     url = "/tags"
-    weight = 2
+    weight = 3
 
 
 [params]
