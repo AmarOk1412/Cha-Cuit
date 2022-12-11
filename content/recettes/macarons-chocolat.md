@@ -19,7 +19,7 @@ thumbnail: "/macarons-chocolat.jpg"
 ## Ganache
 
 + 115g de chocolat
-+ 150ml de crême 35%
++ 150ml de crème 35%
 + Sirop d'érable
 
 # Équipement
@@ -59,7 +59,7 @@ sur les plaques de cuisson avec le papier parchemin.
 
 ## Ganache
 
-1. Dans un bol mettez le chocolat et la crême et faire fondre au bain marie en mélangeant.
+1. Dans un bol mettez le chocolat et la crème et faire fondre au bain marie en mélangeant.
 2. Ajouter le sirop d'érable (au goût).
 3. Couvrir le bol et laisser reposer 1h au réfrigérateur.
 4. Transvaser dans une poche et garnir les macarons.

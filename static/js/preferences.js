@@ -23,7 +23,7 @@ const INGREDIENT_DATA = [
     ["cacao", "cacao", .520, false],
     ["poudre d'amande", "almond flour", 1.09, false],
     ["chocolat", "chocolate", .64, false],
-    ["crême", "cream", 1, true]
+    ["crème", "cream", 1, true]
 ];
 
 function to_ingredient(string) {

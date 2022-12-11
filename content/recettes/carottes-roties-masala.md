@@ -13,7 +13,7 @@ duration: 30min
 + 50g de petits pois
 + 80g de boulgour
 + 1 cuillère à café de miel
-+ 45ml de crême
++ 45ml de crème
 + 30ml Labneh
 + 125g Halloumi
 + 30ml pâte de tomate
@@ -34,7 +34,7 @@ des épices, saler, poivrer et ajouter l'huile. Cuire 25 minutes en retournant �
 2. Cuire le boulgour (20cl d'eau devrait suffir avec du sel). Porter à ébulittion et mijoter jusqu'à ce que l'eau soit
 absorbée.
 3. Dans une poêle, sur un filet d'huile d'olive, ajouter la pâte de tomate à feu moyen. Cuire 1 minute en remuant. Ajouter
-le miel, la crême et 12cl d'eau. Ajouter les épices et cuire 4 minutes jusqu'à ce que la sauce soit prête. Ajouter les petits
+le miel, la crème et 12cl d'eau. Ajouter les épices et cuire 4 minutes jusqu'à ce que la sauce soit prête. Ajouter les petits
 pois 2 minutes. Ajouter le labneh et saler/poivrer au goût.
 4. Sur l'autre poêle, rincer et sécher le halloumi. Le coupre en tranche et le cuire 2 minutes avec un filet d'huile.
 5. Transférer et réserver.

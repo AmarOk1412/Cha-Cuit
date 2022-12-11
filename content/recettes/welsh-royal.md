@@ -53,3 +53,4 @@ sauce à la bière. Poivrer et enfourner 10 minutes.
 
 + S'accompagne traditionnelement de frites (double cuisson, avec des pommes de terre Bintje)
 + Une salade (ou rien d'autre) marche aussi.
++ D'autres recettes du Nord: https://zestedesavoir.com/billets/3516/les-perles-de-la-cuisine-du-nord/

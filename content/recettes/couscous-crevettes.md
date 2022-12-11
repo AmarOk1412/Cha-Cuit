@@ -16,7 +16,7 @@ duration: 30min
 + 15ml de vinaigre
 + Beurre
 + Huile
-+ Crême sure
++ crème sure
 + Ail
 + Fines herbes (persil/coriandre)
 + Menthe

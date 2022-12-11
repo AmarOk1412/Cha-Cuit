@@ -3,7 +3,7 @@ title: Pâte Feuilletée
 date: 2022-11-20
 tags: ["pâtisserie", "desserts", "pâtes"]
 duration: 3h25
-thumbnail: "/step-2-feuilletee.jpg"
+thumbnail: "/pate-feuilletee.jpg"
 ---
 
 
@@ -43,3 +43,5 @@ replier, tourner d'un quart de tour, recommencer et laisser reposer
 ![La pâte prête à être utilisée](/step-6-feuilletee.jpg)
 
 # Notes
+
++ Ajouter ⅓ voir ½ des proportions pour avoir assez de pâte pour le [mille-feuilles](/recettes/mille-feuilles)
