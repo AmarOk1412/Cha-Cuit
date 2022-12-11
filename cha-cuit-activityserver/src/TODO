@@ -27,3 +27,10 @@
 + Parse inbox from another instance
 
 + Update crates to latest version
+
++ TODO webfinger
+
+curl https://cha-cu.it/.well-known/webfinger\?resource\=acct:chef@cha-cu.it
+
+curl -H "Accept: application/activity+json" https://cha-cu.it/users/chef
+
