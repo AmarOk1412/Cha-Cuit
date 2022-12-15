@@ -1,5 +1,5 @@
 [package]
-name = "cha-cuit-activityserver"
+name = "chactivityserver"
 version = "0.1.0"
 authors = ["Sébastien (AmarOk) Blin"]
 edition = "2018"
