@@ -112,12 +112,38 @@ async fn outbox() -> impl Responder {
     HttpResponse::Ok().json(outbox_json)
 }
 
+#[derive(Debug, Deserialize)]
+pub struct WebFingerRequest {
+    resource: String
+}
+
+async fn webfinger_handler(info: web::Query<WebFingerRequest>) -> impl Responder {
+    if info.resource == "acct:chef@cha-cu.it" {
+        return HttpResponse::Ok().json(json!({
+            "subject" : info.resource,
+            "links": [
+                {
+                    "rel":"http://webfinger.net/rel/profile-page","type":"text/html",
+                    "href":"https://cha-cu.it/recettes"
+                },
+                {
+                    "rel": "self",
+                    "type": "application/activity+json",
+                    "href": "https://cha-cu.it/users/chef/outbox"
+                }
+            ]
+        }));
+    }
+    HttpResponse::Ok().json(json!({}))
+}
+
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .route("/inbox", web::post().to(inbox))
             .route("/users/chef/outbox", web::get().to(outbox))
+            .route("/.well-known/webfinger", web::get().to(webfinger_handler))
     })
     .bind("127.0.0.1:8080")?
     .run()
