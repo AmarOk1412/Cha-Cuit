@@ -1,9 +1,13 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use chrono::{DateTime, Local};
+use chrono::offset::Utc;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use regex::Regex;
 use std::fs;
+use std::io;
+use std::time::SystemTime;
+use std::time::Duration;
 
 #[derive(Deserialize)]
 struct InboxRequest {
@@ -82,14 +86,70 @@ async fn inbox(data: web::Json<InboxRequest>) -> &'static str {
 }
 
 
-async fn outbox() -> impl Responder {
+#[derive(Deserialize)]
+pub struct OutboxParams {
+    page: Option<u32>
+}
+
+async fn outbox(info: web::Query<OutboxParams>) -> impl Responder {
+    let recipes = fs::read_dir("../content/recettes/").unwrap()
+        .map(|res| res.map(|e| e.path()))
+        .collect::<Result<Vec<_>, io::Error>>().unwrap();
+    if info.page.unwrap_or(0) == 0 {
+        // If no page provided, then describe the other pages
+        let outbox_json = json!({
+            "@context": "https://www.w3.org/ns/activitystreams",
+            "id": "https://cha-cu.it/users/chef/outbox",
+            "type": "OrderedCollection",
+            "totalItems": recipes.len(),
+            "first": "https://cha-cu.it/users/chef/outbox?page=1",
+            "last": format!("https://cha-cu.it/users/chef/outbox?page={}", (recipes.len()/12)+1),
+        });
+        return HttpResponse::Ok().json(outbox_json);
+    }
+
+    // sort the recipes by last modification time
+    let mut sorted_recipes = recipes.iter().map(|entry| {
+        let metadata = entry.metadata()?;
+        let modified_time = metadata.modified()?;
+        Ok((entry, modified_time))
+    }).collect::<Result<Vec<_>, io::Error>>().unwrap();
+    sorted_recipes.sort_by(|a, b| b.1.cmp(&a.1));
+
+    // Create the "chadiverse" directory if it does not exist
+    if let Err(_) = fs::create_dir_all(".cache") {
+        println!("Failed to create directory");
+        return HttpResponse::Ok().json(json!({}));
+    }
+
+    // read the date from the file
+    let file_date_string = match fs::read_to_string(".cache/date_file.txt") {
+        Ok(date_string) => date_string,
+        Err(_) => "".to_string(), // if the file does not exist or there was an error reading it, use an empty string
+    };
+
+    // parse the date string from the file
+    let file_date = match file_date_string.parse::<u64>() {
+        Ok(date) =>  SystemTime::UNIX_EPOCH + Duration::from_secs(date),
+        Err(_) => SystemTime::UNIX_EPOCH, // if the date string is invalid, use the Unix epoch as the date
+    };
+
+    // get the date of the first entry
+    let first_entry_date = sorted_recipes[0].1;
+    if first_entry_date > file_date {
+        println!("TODO CACHE!");
+    }
+
+    let datetime: DateTime<Utc> = first_entry_date.into();
+    println!("{:?} {}", datetime.format("%y%m%d"), sorted_recipes.len());
+
+
 
     let mut articles = Vec::new();
-    let markdown_files = fs::read_dir("../content/recettes/").unwrap();
     let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
     // Parse the markdown files into a collection of `Object`s.
-    for markdown_file in markdown_files {
-        let markdown = fs::read_to_string(markdown_file.unwrap().path()).unwrap();
+    for markdown_file in recipes {
+        let markdown = fs::read_to_string(markdown_file).unwrap();
         let match_title = re_title_regex.captures(&markdown).unwrap();
         let article = Object {
             object_type: "Article".to_owned(),
@@ -101,15 +161,23 @@ async fn outbox() -> impl Responder {
         articles.push(article);
     }
 
-
-    let outbox_json = json!({
-        "@context": "https://www.w3.org/ns/activitystreams",
-        "id": "https://cha-cu.it/users/chef/outbox",
-        "type": "OrderedCollection",
-        "totalItems": articles.len(),
-        "orderedItems": articles,
-    });
+    let outbox_json = json!({});
     HttpResponse::Ok().json(outbox_json)
+}
+
+
+async fn profile() -> impl Responder {
+    let profile_json = json!({
+        "@context": "https://www.w3.org/ns/activitystreams",
+        "type": "Person",
+        "id": "https://cha-cu.it/users/chef/",
+        "name": "Chef",
+        "preferredUsername": "chef",
+        "summary": "Lisp enthusiast hailing from MIT",
+        "inbox": "https://cha-cu.it/users/chef/inbox/",
+        "outbox": "https://cha-cu.it/users/chef/outbox/",
+    });
+    HttpResponse::Ok().json(profile_json)
 }
 
 #[derive(Debug, Deserialize)]
@@ -129,7 +197,7 @@ async fn webfinger_handler(info: web::Query<WebFingerRequest>) -> impl Responder
                 {
                     "rel": "self",
                     "type": "application/activity+json",
-                    "href": "https://cha-cu.it/users/chef/outbox"
+                    "href": "https://cha-cu.it/users/chef"
                 }
             ]
         }));
@@ -143,6 +211,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .route("/inbox", web::post().to(inbox))
             .route("/users/chef/outbox", web::get().to(outbox))
+            .route("/users/chef", web::get().to(profile))
             .route("/.well-known/webfinger", web::get().to(webfinger_handler))
     })
     .bind("127.0.0.1:8080")?
