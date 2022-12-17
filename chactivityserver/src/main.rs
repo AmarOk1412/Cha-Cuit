@@ -31,6 +31,9 @@ struct OutboxRequest {
 struct Object {
     #[serde(rename = "type")]
     object_type: String,
+    #[serde(rename = "@context")]
+    context: String,
+    id: String,
     name: String,
     content: String,
     attributedTo: String,
@@ -91,11 +94,14 @@ pub struct OutboxParams {
     page: Option<u32>
 }
 
+// TODO split
 async fn outbox(info: web::Query<OutboxParams>) -> impl Responder {
     let recipes = fs::read_dir("../content/recettes/").unwrap()
         .map(|res| res.map(|e| e.path()))
         .collect::<Result<Vec<_>, io::Error>>().unwrap();
-    if info.page.unwrap_or(0) == 0 {
+    let page: usize = info.page.unwrap_or(0) as usize;
+    let max_page: usize = (recipes.len()/12)+1;
+    if page == 0 {
         // If no page provided, then describe the other pages
         let outbox_json = json!({
             "@context": "https://www.w3.org/ns/activitystreams",
@@ -103,7 +109,7 @@ async fn outbox(info: web::Query<OutboxParams>) -> impl Responder {
             "type": "OrderedCollection",
             "totalItems": recipes.len(),
             "first": "https://cha-cu.it/users/chef/outbox?page=1",
-            "last": format!("https://cha-cu.it/users/chef/outbox?page={}", (recipes.len()/12)+1),
+            "last": format!("https://cha-cu.it/users/chef/outbox?page={}", max_page),
         });
         return HttpResponse::Ok().json(outbox_json);
     }
@@ -123,46 +129,83 @@ async fn outbox(info: web::Query<OutboxParams>) -> impl Responder {
     }
 
     // read the date from the file
-    let file_date_string = match fs::read_to_string(".cache/date_file.txt") {
-        Ok(date_string) => date_string,
+    let contents = match fs::read_to_string(".cache/date_file.txt") {
+        Ok(contents) => contents,
         Err(_) => "".to_string(), // if the file does not exist or there was an error reading it, use an empty string
     };
 
-    // parse the date string from the file
-    let file_date = match file_date_string.parse::<u64>() {
-        Ok(date) =>  SystemTime::UNIX_EPOCH + Duration::from_secs(date),
-        Err(_) => SystemTime::UNIX_EPOCH, // if the date string is invalid, use the Unix epoch as the date
-    };
+    let mut file_date = 0u64;
+    let mut file_nb_articles = 0 as usize;
+    let lines: Vec<&str> = contents.lines().collect();
+    if lines.len() == 2 {
+        // parse the date string from the file
+        file_date = lines[0].parse::<u64>().unwrap_or(0);
+        file_nb_articles = lines[1].parse().unwrap_or(0 as usize);
+    }
+
+    if let Err(_) = fs::create_dir_all("chadiverse") {
+        println!("Failed to create directory");
+        return HttpResponse::Ok().json(json!({}));
+    }
 
     // get the date of the first entry
-    let first_entry_date = sorted_recipes[0].1;
-    if first_entry_date > file_date {
-        println!("TODO CACHE!");
+    let first_entry_date = sorted_recipes[0].1.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+    let chunked_recipes: Vec<Vec<_>> = sorted_recipes.chunks(12).map(|chunk| chunk.to_vec()).collect();
+    if first_entry_date > file_date || file_nb_articles != recipes.len() {
+        println!("@@@ CACHE {} {} {} {}", first_entry_date, file_date, file_nb_articles, recipes.len());
+        let mut idx_page = 0;
+        let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
+        for chunk in chunked_recipes {
+            let mut articles = Vec::new();
+            // Parse the markdown files into a collection of `Object`s.
+            for markdown_file in chunk.iter() {
+                let filename_without_extension = markdown_file.0.file_stem().unwrap().to_str().unwrap();
+                let markdown = fs::read_to_string(markdown_file.0).unwrap();
+                let match_title = re_title_regex.captures(&markdown).unwrap();
+                let article = Object {
+                    context: "https://www.w3.org/ns/activitystreams".to_owned(),
+                    id: format!("https://cha-cu.it/recettes/{}", filename_without_extension).to_owned(),
+                    object_type: "Article".to_owned(),
+                    name: match_title.get(1).map_or("ERR", |m| m.as_str()).to_owned(),
+                    content: markdown,
+                    attributedTo: "chef@cha-cu.it".to_owned(), // TODO
+                    mediaType: "text/markdown".to_owned(),
+                };
+                articles.push(article);
+            }
+
+            let mut outbox_json = json!({
+                "type": "OrderedCollectionPage",
+                "partOf": "https://cha-cu.it/users/chef/outbox",
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "items": articles
+            });
+            if idx_page > 1 {
+                outbox_json["prev"] = serde_json::Value::String(format!("https://cha-cu.it/users/chef/outbox?page={}", idx_page - 1));
+            }
+            if idx_page < max_page {
+                outbox_json["next"] = serde_json::Value::String(format!("https://cha-cu.it/users/chef/outbox?page={}", idx_page + 1));
+            }
+
+            // Cache file
+            std::fs::write(
+                format!(".cache/{}.json", idx_page + 1),
+                serde_json::to_string_pretty(&outbox_json).unwrap(),
+            ).unwrap();
+            idx_page += 1;
+        }
+
+
+        let cache_content = format!("{}\n{}\n", first_entry_date, recipes.len());
+        fs::write(".cache/date_file.txt", cache_content).unwrap();
     }
 
-    let datetime: DateTime<Utc> = first_entry_date.into();
-    println!("{:?} {}", datetime.format("%y%m%d"), sorted_recipes.len());
+    let content = match fs::read_to_string(format!(".cache/{}.json", page)) {
+        Ok(c) => c,
+        Err(_) => "{}".to_owned(),
+    };
 
-
-
-    let mut articles = Vec::new();
-    let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
-    // Parse the markdown files into a collection of `Object`s.
-    for markdown_file in recipes {
-        let markdown = fs::read_to_string(markdown_file).unwrap();
-        let match_title = re_title_regex.captures(&markdown).unwrap();
-        let article = Object {
-            object_type: "Article".to_owned(),
-            name: match_title.get(1).map_or("ERR", |m| m.as_str()).to_owned(),
-            content: markdown,
-            attributedTo: "chef@cha-cu.it".to_owned(), // TODO
-            mediaType: "text/markdown".to_owned(),
-        };
-        articles.push(article);
-    }
-
-    let outbox_json = json!({});
-    HttpResponse::Ok().json(outbox_json)
+    HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
 }
 
 
