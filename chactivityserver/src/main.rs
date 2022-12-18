@@ -1,4 +1,4 @@
-use actix_web::{web, App, HttpResponse, HttpServer, Responder};
+use actix_web::{web, App, HttpResponse, HttpServer, Responder, web::{Bytes, post}};
 use chrono::{DateTime, Local};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -33,16 +33,19 @@ struct OutboxRequest {
 
 #[derive(Deserialize, Serialize)]
 struct Object {
-    #[serde(rename = "type")]
+    #[serde(rename = "type", default)]
     object_type: String,
-    #[serde(rename = "@context")]
+    #[serde(rename = "@context", default)]
     context: String,
+    #[serde(default)]
     id: String,
+    #[serde(default)]
     name: String,
+    #[serde(default)]
     content: String,
-    #[serde(rename = "attributedTo")]
+    #[serde(rename = "attributedTo", default)]
     attributed_to: String,
-    #[serde(rename = "mediaType")]
+    #[serde(rename = "mediaType", default)]
     media_type: String,
 }
 
@@ -55,6 +58,15 @@ const REQUIRED_TITLES: &str = r"# Ingrédients[\s\S]*# Équipement[\s\S]*# Prép
 
 // TODO follow
 // TODO likes
+async fn inbox(bytes: Bytes) -> Result<String, HttpResponse> {
+    println!("{}", String::from_utf8(bytes.to_vec()).unwrap());
+    match String::from_utf8(bytes.to_vec()) {
+        Ok(text) => Ok(format!("{}!\n", text)),
+        Err(_) => Err(HttpResponse::BadRequest().into())
+    }
+}
+
+/*
 async fn inbox(data: web::Json<InboxRequest>) -> &'static str {
     if data.activity_type == "Create" && data.object.object_type == "Article" && data.object.media_type == "text/markdown" {
         // Compile the regular expression
@@ -95,7 +107,7 @@ async fn inbox(data: web::Json<InboxRequest>) -> &'static str {
         "Activity received"
     }
 }
-
+*/
 
 #[derive(Deserialize)]
 pub struct OutboxParams {
@@ -239,8 +251,6 @@ fn outbox_page(page: usize) -> HttpResponse {
     // Create the cache directories if they do not exist
     create_cache_directories().unwrap_or_else(|_| println!("Failed to create directories"));
 
-    let max_page: usize = (recipes.len()/12)+1;
-
     let (file_date, file_nb_articles) = read_date_and_article_count_from_cache().unwrap_or((0, 0));
 
     // Get the date of the first entry
@@ -268,15 +278,102 @@ async fn outbox(info: web::Query<OutboxParams>) -> impl Responder {
 // TODO documentation
 async fn profile() -> impl Responder {
     let profile_json = json!({
-        "@context": "https://www.w3.org/ns/activitystreams",
+        "@context": [
+          "https://www.w3.org/ns/activitystreams",
+          "https://w3id.org/security/v1",
+          {
+            "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+            "toot": "http://joinmastodon.org/ns#",
+            "featuredTags": {
+              "@id": "toot:featuredTags",
+              "@type": "@id"
+            },
+            "alsoKnownAs": {
+              "@id": "as:alsoKnownAs",
+              "@type": "@id"
+            },
+            "movedTo": {
+              "@id": "as:movedTo",
+              "@type": "@id"
+            },
+            "schema": "http://schema.org#",
+            "PropertyValue": "schema:PropertyValue",
+            "value": "schema:value",
+            "discoverable": "toot:discoverable",
+            "Device": "toot:Device",
+            "Ed25519Signature": "toot:Ed25519Signature",
+            "Ed25519Key": "toot:Ed25519Key",
+            "Curve25519Key": "toot:Curve25519Key",
+            "EncryptedMessage": "toot:EncryptedMessage",
+            "publicKeyBase64": "toot:publicKeyBase64",
+            "deviceId": "toot:deviceId",
+            "claim": {
+              "@type": "@id",
+              "@id": "toot:claim"
+            },
+            "fingerprintKey": {
+              "@type": "@id",
+              "@id": "toot:fingerprintKey"
+            },
+            "identityKey": {
+              "@type": "@id",
+              "@id": "toot:identityKey"
+            },
+            "devices": {
+              "@type": "@id",
+              "@id": "toot:devices"
+            },
+            "messageFranking": "toot:messageFranking",
+            "messageType": "toot:messageType",
+            "cipherText": "toot:cipherText",
+            "suspended": "toot:suspended",
+            "focalPoint": {
+              "@container": "@list",
+              "@id": "toot:focalPoint"
+            }
+          }
+        ],
+        "id": "https://cha-cu.it/users/chef",
         "type": "Person",
-        "id": "https://cha-cu.it/users/chef/",
-        "name": "Chef",
+        "following": "https://cha-cu.it/users/chef/following",
+        "followers": "https://cha-cu.it/users/chef/followers",
+        "inbox": "https://cha-cu.it/users/chef/inbox",
+        "outbox": "https://cha-cu.it/users/chef/outbox",
+        "featuredTags": "https://cha-cu.it/tags",
         "preferredUsername": "chef",
-        "summary": "Lisp enthusiast hailing from MIT",
-        "inbox": "https://cha-cu.it/users/chef/inbox/",
-        "outbox": "https://cha-cu.it/users/chef/outbox/",
-    });
+        "name": "Kælinn",
+        "summary": "Un site de recettes cha-tisfaisantes ! Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont en grande partie réalisées avec l'aide de Kælinn.",
+        "url": "https://cha-cu.it/recettes/",
+        "manuallyApprovesFollowers": false,
+        "discoverable": true,
+        "published": "2022-11-11T11:11:11Z",
+        "devices": "https://cha-cu.it/users/chef/collections/devices",
+        "publicKey": {
+          "id": "https://cha-cu.it/users/chef#main-key",
+          "owner": "https://cha-cu.it/users/chef",
+          "publicKeyPem": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsNjYEeRIPVC3ErOWgQAH\n6zEl/CnkC+mI7MNOPVdlewbp3tPQ0M8aLdO3MRMMXQsxYz6E67MAwUu9M0dVsmvi\ndKHQ7sMyxxysFzAdJp6oM4yA4vQfEZlh8tUTSEn1ZsLzhBP6s+Dr9fxrTs4kfEkZ\nPQbMpFOcjRCkaKKglCfkukL9u1IR97AAqc7WUZd42/x83Ztl2+EIVbNSUL+w0iI5\nDXqZrl0G0yZa9PTLVZXlkKlbQJ2TNVSAAIK75vWw7MU55iBiuzI53FzBA4sMrbuJ\nnLZrFImWyHpFn1M7WzaL45XRG6RXuzMxcjesXyt1nUEfb4pXPdV4Lo2nluJZ8rCX\nLQIDAQAB\n-----END PUBLIC KEY-----" // TODO from letsencrypt
+        },
+        "tag": [],
+        "attachment": [
+          {
+            "type": "PropertyValue",
+            "name": "website",
+            "value": "<a href=\"https://cha-cu.it\" target=\"_blank\" rel=\"nofollow noopener noreferrer me\"><span class=\"invisible\">https://</span><span class=\"\">cha-cu.it</span><span class=\"invisible\"></span></a>"
+          }
+        ],
+        "endpoints": {
+          "sharedInbox": "https://cha-cu.it/users/chef/inbox"
+        },
+        "icon": {
+            "type": "Image",
+            "url": "https://cha-cu.it/chactivityserver/profile.jpg" // TODO parametrize
+        },
+        "image": {
+          "type": "Image",
+          "mediaType": "image/jpeg",
+          "url": "https://cha-cu.it/logo.png"
+        }
+      });
     HttpResponse::Ok().json(profile_json)
 }
 
@@ -288,16 +385,24 @@ pub struct WebFingerRequest {
 async fn webfinger_handler(info: web::Query<WebFingerRequest>) -> impl Responder {
     if info.resource == "acct:chef@cha-cu.it" {
         return HttpResponse::Ok().json(json!({
-            "subject" : info.resource,
+            "subject": info.resource,
+            "aliases": [
+                "https://cha-cu.it/recettes/",
+            ],
             "links": [
                 {
-                    "rel":"http://webfinger.net/rel/profile-page","type":"text/html",
-                    "href":"https://cha-cu.it/recettes"
+                    "rel": "http://webfinger.net/rel/profile-page",
+                    "type": "text/html",
+                    "href": "https://cha-cu.it/recettes"
                 },
                 {
                     "rel": "self",
                     "type": "application/activity+json",
                     "href": "https://cha-cu.it/users/chef"
+                },
+                {
+                    "rel": "http://ostatus.org/schema/1.0/subscribe",
+                    "template": "https://cha-cu.it/api/authorize_interaction?uri={uri}"
                 }
             ]
         }));
@@ -309,7 +414,7 @@ async fn webfinger_handler(info: web::Query<WebFingerRequest>) -> impl Responder
 async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
-            .route("/inbox", web::post().to(inbox))
+            .route("/users/chef/inbox", web::post().to(inbox))
             .route("/users/chef/outbox", web::get().to(outbox))
             .route("/users/chef", web::get().to(profile))
             .route("/.well-known/webfinger", web::get().to(webfinger_handler))
