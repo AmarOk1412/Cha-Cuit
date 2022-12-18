@@ -43,3 +43,5 @@ homogène.
 1. Si pas de gousse de vanille, quelques gouttes d'extrait de vanille fonctionne aussi.
 2. Possible de remplacer la gousse par 30g de cacao (dans la mélanger) pour avoir une crème
 pâtissière chocolatée.
+3. Pour une crème pâtissière au café, ajouter un peu d'arôme de café (ou voir [ici](/recettes/creme-patissiere-cafe) si besoin
+de faire du café en même temps)
