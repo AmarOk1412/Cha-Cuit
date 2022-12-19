@@ -1,5 +1,5 @@
 ---
-title: Crème pâtissière au café
+title: Crème pâtissière au cha-fé
 date: 2022-12-18
 tags: ["sucré", "desserts", "crème", "coffee"]
 duration: 3h

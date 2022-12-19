@@ -1,5 +1,5 @@
 ---
-title: Éclairs au café (x8)
+title: Éclairs au Cha-fé (x8)
 date: 2022-12-18
 tags: ["sucré", "desserts", "crème", "coffee"]
 duration: 1h
@@ -8,7 +8,7 @@ thumbnail: "/eclair-cafe.jpg"
 
 # Ingrédients
 
-+ [1 crème pâtissière au café](/recettes/creme-patissiere-cafe)
++ [1 crème pâtissière au Cha-fé](/recettes/creme-patissiere-cafe)
 + 20cl eau
 + 100g beurre
 + 120g farine
