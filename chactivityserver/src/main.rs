@@ -4,8 +4,12 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use regex::Regex;
 use std::fs;
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
 use std::io;
-use std::path::PathBuf;
+use std::io::BufReader;
+use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 // TODO split in files
@@ -38,6 +42,8 @@ struct Object {
     #[serde(rename = "@context", default)]
     context: String,
     #[serde(default)]
+    actor: String,
+    #[serde(default)]
     id: String,
     #[serde(default)]
     name: String,
@@ -49,6 +55,25 @@ struct Object {
     media_type: String,
 }
 
+#[derive(Deserialize, Serialize)]
+struct ActivityPubRequest {
+    #[serde(rename = "type", default)]
+    object_type: String,
+    #[serde(rename = "@context", default)]
+    context: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct FollowObject {
+    #[serde(default)]
+    id: String,
+    #[serde(default)]
+    actor: String,
+    #[serde(default)]
+    object: String,
+}
+
+
 // Define the regular expression for matching the required header
 // TODO order or generate all?
 const REQUIRED_HEADER: &str = r#"^---\ntitle: ([^\n]+)\n?duration: ([^\n]+)\n?tags: (\[[^\]]+\])\n?thumbnail: ("[^"]+")\n?---\n"#;
@@ -56,10 +81,86 @@ const HEADER_TITLE_REGEX: &str = r#"title: ([^\n]+)\n"#;
 // Define the regular expression for matching the required titles
 const REQUIRED_TITLES: &str = r"# Ingrédients[\s\S]*# Équipement[\s\S]*# Préparation[\s\S]*# Notes";
 
+fn followers() -> Vec<String> {
+    let mut followers : Vec<String> = Vec::new();
+    if Path::new("chadiverse/followers").exists() {
+        let file = File::open("chadiverse/followers").unwrap();
+        let buf = BufReader::new(file);
+        followers = buf.lines()
+            .map(|l| l.expect("Could not parse line"))
+            .collect();
+    }
+    followers
+}
+
+fn write_followers(followers: &Vec<String>) {
+    // TODO serialize and refresh instead removing
+    fs::remove_file("chadiverse/followers");
+    let mut file = OpenOptions::new()
+        .create_new(true)
+        .write(true)
+        .append(false)
+        .open("chadiverse/followers")
+        .unwrap();
+    for follower in followers  {
+        if let Err(e) = writeln!(file, "{}", follower) {
+            eprintln!("Couldn't write to file: {}", e);
+        }
+    }
+}
+
+async fn get_inbox(actor: &String) -> Result<(), reqwest::Error> {
+    let body = reqwest::get(actor)
+        .await?
+        .text()
+        .await?;
+
+    println!("body = {:?}", body);
+    Ok(())
+}
+
 // TODO follow
 // TODO likes
+// TODO check signature
 async fn inbox(bytes: Bytes) -> Result<String, HttpResponse> {
-    println!("{}", String::from_utf8(bytes.to_vec()).unwrap());
+    let body = String::from_utf8(bytes.to_vec()).unwrap();
+
+    let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
+
+    if base_obj.object_type == "Follow" {
+        let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
+        if follow_obj.object != "https://cha-cu.it/users/chef" {
+            println!("Unknown object: {}", follow_obj.object);
+        } else {
+            println!("Get Follow object from {}", follow_obj.actor);
+            let mut f = followers();
+            f.retain(|x| x != &*follow_obj.actor);
+            f.push(follow_obj.actor.clone());
+            write_followers(&f);
+            get_inbox(&follow_obj.actor).await.unwrap();
+        }
+
+        // TODO send accept to inbox of the actor
+        return Ok(json!({
+            "@context":"https://www.w3.org/ns/activitystreams",
+            "id":"http://cha-cu.it/users/chef",
+            "type":"Accept",
+            "actor":"http://cha-cu.it/users/chef",
+            "object": follow_obj
+        }).to_string());
+    }
+
+    let request: OutboxRequest = serde_json::from_str(&body).unwrap();
+
+    if request.activity_type == "Undo" && request.object.object_type == "Follow" {
+        println!("Get Unfollow object from {}", request.object.actor);
+        let mut f = followers();
+        f.retain(|x| x != &*request.object.actor);
+        write_followers(&f);
+        return Ok(String::from("{}"));
+    } else if request.activity_type == "Delete" {}
+
+    println!("{}", body);
     match String::from_utf8(bytes.to_vec()) {
         Ok(text) => Ok(format!("{}!\n", text)),
         Err(_) => Err(HttpResponse::BadRequest().into())
@@ -132,6 +233,7 @@ fn update_cache(sorted_recipes: Vec<(&PathBuf, SystemTime)>) {
             let markdown = fs::read_to_string(markdown_file.0).unwrap();
             let match_title = re_title_regex.captures(&markdown).unwrap();
             let article = Object {
+                actor: String::new(), // TODO remove
                 context: "https://www.w3.org/ns/activitystreams".to_owned(),
                 id: format!("https://cha-cu.it/recettes/{}", filename_without_extension).to_owned(),
                 object_type: "Article".to_owned(),
@@ -377,6 +479,40 @@ async fn profile() -> impl Responder {
     HttpResponse::Ok().json(profile_json)
 }
 
+
+async fn user_followers() -> impl Responder {
+    let f = followers();
+
+    let followers_json = json!({
+        "@context": [
+          "https://www.w3.org/ns/activitystreams",
+          "https://w3id.org/security/v1",
+          {
+            "Emoji": "toot:Emoji",
+            "Hashtag": "as:Hashtag",
+            "atomUri": "ostatus:atomUri",
+            "conversation": "ostatus:conversation",
+            "featured": "toot:featured",
+            "focalPoint": {
+              "@container": "@list",
+              "@id": "toot:focalPoint"
+            },
+            "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+            "manuallyApprovesFollowers": "as:manuallyApprovesFollowers",
+            "movedTo": "as:movedTo",
+            "ostatus": "http://ostatus.org#",
+            "sensitive": "as:sensitive",
+            "toot": "http://joinmastodon.org/ns#"
+          }
+        ],
+        "id": "https://cha-cu.it/users/chef/followers",
+        "items": f,
+        "totalItems": f.len(),
+        "type": "OrderedCollection"
+    });
+    HttpResponse::Ok().json(followers_json)
+}
+
 #[derive(Debug, Deserialize)]
 pub struct WebFingerRequest {
     resource: String
@@ -417,9 +553,24 @@ async fn main() -> std::io::Result<()> {
             .route("/users/chef/inbox", web::post().to(inbox))
             .route("/users/chef/outbox", web::get().to(outbox))
             .route("/users/chef", web::get().to(profile))
+            .route("/users/chef/followers", web::get().to(user_followers))
             .route("/.well-known/webfinger", web::get().to(webfinger_handler))
     })
     .bind("127.0.0.1:8080")?
     .run()
     .await
 }
+
+
+/*
+use actix_web::{HttpResponse, Responder};
+
+async fn handle_request() -> impl Responder {
+    let signature = "signature";
+
+    HttpResponse::Ok()
+        .with_header("signature", signature)
+        .body("Hello, world!")
+}
+
+*/
