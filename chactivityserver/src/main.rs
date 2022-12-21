@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use regex::Regex;
 use std::fs;
+use http_sig::*;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -11,6 +12,7 @@ use std::io;
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
+use serde_json::Value;
 
 // TODO split in files
 // TODO re-organize headers
@@ -109,20 +111,45 @@ fn write_followers(followers: &Vec<String>) {
     }
 }
 
-async fn get_inbox(actor: &String) -> Result<(), reqwest::Error> {
-    let body = reqwest::get(actor)
-        .await?
-        .text()
-        .await?;
+async fn get_inbox(actor: &String) -> Result<String, reqwest::Error> {
+    let client = reqwest::Client::new();
+    let body = client.get(actor).header(reqwest::header::ACCEPT, "application/activity+json")
+        .send().await.unwrap().text().await.unwrap();
+    let mut object: Value = serde_json::from_str(&body).unwrap();
+    Ok(object.get("inbox").unwrap().to_string())
+}
 
-    println!("body = {:?}", body);
+
+async fn post_inbox(actor: &String, body: Value) -> Result<(), reqwest::Error> {
+    let client = reqwest::Client::builder()
+        .connection_verbose(true)
+        .build().unwrap();
+    let mut inbox : String = get_inbox(actor).await.unwrap_or(String::new());
+    inbox.remove(0); inbox.pop();
+
+
+    let config = SigningConfig::new("https://cha-cu.it/users/chef#main-key", RsaSha256Sign::new_pem(&*fs::read("privkey.pem").unwrap()).unwrap());
+    println!("Send Accept to inbox: {}", inbox);
+
+    let mut req = client
+        .post(inbox.clone()).json(&body)
+        .header(reqwest::header::ACCEPT, "application/activity+json")
+        .build()
+        .unwrap()
+        .signed(&config)
+        .unwrap();
+
+//    println!("@@@ {:?}", req.headers().get(reqwest::header::HeaderName::from_static("Signature")).unwrap());
+//    println!("@@@ {:?}", req.headers().get(reqwest::header::HeaderName::from_static("digest")).unwrap());
+    let result = client.execute(req).await.unwrap().text().await.unwrap();
+    println!("=>{}", result);
     Ok(())
 }
 
 // TODO follow
 // TODO likes
 // TODO check signature
-async fn inbox(bytes: Bytes) -> Result<String, HttpResponse> {
+async fn inbox(bytes: Bytes) -> String{
     let body = String::from_utf8(bytes.to_vec()).unwrap();
 
     let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
@@ -137,33 +164,38 @@ async fn inbox(bytes: Bytes) -> Result<String, HttpResponse> {
             f.retain(|x| x != &*follow_obj.actor);
             f.push(follow_obj.actor.clone());
             write_followers(&f);
-            get_inbox(&follow_obj.actor).await.unwrap();
+            // Send accept to inbox of the actor
+            post_inbox(&follow_obj.actor, json!({
+                "@context":"https://www.w3.org/ns/activitystreams",
+                "id":"https://cha-cu.it/users/chef",
+                "type":"Accept",
+                "actor":"https://cha-cu.it/users/chef",
+                "object": follow_obj
+            })).await.unwrap();
         }
 
-        // TODO send accept to inbox of the actor
-        return Ok(json!({
-            "@context":"https://www.w3.org/ns/activitystreams",
-            "id":"http://cha-cu.it/users/chef",
-            "type":"Accept",
-            "actor":"http://cha-cu.it/users/chef",
-            "object": follow_obj
-        }).to_string());
+        return "{}".to_string();
     }
 
-    let request: OutboxRequest = serde_json::from_str(&body).unwrap();
+    let request: Value = serde_json::from_str(&body).unwrap();
 
-    if request.activity_type == "Undo" && request.object.object_type == "Follow" {
-        println!("Get Unfollow object from {}", request.object.actor);
+    if request.get("type").unwrap().as_str().unwrap() == "Undo"
+        && request.get("object").unwrap().get("type").unwrap().as_str().unwrap() == "Follow" {
         let mut f = followers();
-        f.retain(|x| x != &*request.object.actor);
+        let actor = request.get("object").unwrap().get("actor").unwrap().as_str().unwrap();
+        println!("Get Unfollow object from {}", actor);
+        f.retain(|x| x != &*actor);
         write_followers(&f);
-        return Ok(String::from("{}"));
-    } else if request.activity_type == "Delete" {}
+        return String::from("{}");
+    } else if request.get("type").unwrap().as_str().unwrap() == "Delete" {
+        return String::from("{}");
+    }
+
 
     println!("{}", body);
     match String::from_utf8(bytes.to_vec()) {
-        Ok(text) => Ok(format!("{}!\n", text)),
-        Err(_) => Err(HttpResponse::BadRequest().into())
+        Ok(text) => format!("{}!\n", text),
+        Err(_) => "".to_owned(),
     }
 }
 
@@ -546,8 +578,29 @@ async fn webfinger_handler(info: web::Query<WebFingerRequest>) -> impl Responder
     HttpResponse::Ok().json(json!({}))
 }
 
-#[actix_rt::main]
-async fn main() -> std::io::Result<()> {
+fn main() {
+
+    // Init logging
+    env_logger::init();
+
+    actix_web::rt::System::with_tokio_rt(|| {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(8)
+            .thread_name("main-tokio")
+            .build()
+            .unwrap()
+    })
+    .block_on(async_main());
+}
+
+async fn async_main() {
+    tokio::spawn(async move {
+        println!("From main tokio thread");
+        // Would panic if uncommented showing no system here
+        // println!("{:?}",actix_web::rt::System::current());
+    });
+
     HttpServer::new(|| {
         App::new()
             .route("/users/chef/inbox", web::post().to(inbox))
@@ -556,9 +609,10 @@ async fn main() -> std::io::Result<()> {
             .route("/users/chef/followers", web::get().to(user_followers))
             .route("/.well-known/webfinger", web::get().to(webfinger_handler))
     })
-    .bind("127.0.0.1:8080")?
+    .bind("127.0.0.1:8080").unwrap()
     .run()
     .await
+    .unwrap()
 }
 
 
