@@ -148,7 +148,7 @@ impl Followers {
     /**
      * Post JSON Value to a follower
      */
-    async fn post_inbox(&self, actor_inbox: &String, body: Value) -> Result<(), reqwest::Error> {
+    pub async fn post_inbox(&self, actor_inbox: &String, body: Value) -> Result<(), reqwest::Error> {
         let client = reqwest::Client::builder()
             .connection_verbose(true)
             .build()?;
@@ -157,7 +157,7 @@ impl Followers {
                 &*format!("https://{}/users/{}#main-key", self.config.domain, self.config.user),
                 RsaSha256Sign::new_pem(&*fs::read(self.config.private_key.clone()).unwrap()).unwrap()
             );
-        println!("Send Accept to inbox: {}", actor_inbox);
+        println!("Send Value to inbox: {}", actor_inbox);
 
         let req = client
             .post(actor_inbox).json(&body)

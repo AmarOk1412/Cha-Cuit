@@ -56,7 +56,7 @@ pub struct ActivityPubRequest {
     #[serde(rename = "type", default)]
     pub object_type: String,
     #[serde(rename = "@context", default)]
-    pub context: String,
+    pub context: Value,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -146,7 +146,7 @@ impl Server {
         if page == 0 {
             return server.outbox_page_0();
         }
-        server.outbox_page(page)
+        server.outbox_page(page).await
     }
 
     /**
@@ -182,7 +182,7 @@ impl Server {
      * Handle Outbox requests if page > 0
      * @param page
      */
-    fn outbox_page(&self, page: usize) -> HttpResponse {
+    async fn outbox_page(&self, page: usize) -> HttpResponse {
         // Get the list of recipe paths
         let recipes = self.get_recipe_paths();
 
@@ -198,8 +198,9 @@ impl Server {
         let first_entry_date = Server::get_first_entry_date(&sorted_recipes);
         if first_entry_date > file_date || file_nb_articles != recipes.len() {
             println!("Refreshing cache.");
-            self.update_cache(sorted_recipes);
+            let to_announce = self.update_cache(sorted_recipes, file_nb_articles);
             let _ = self.write_date_and_article_count_to_cache(first_entry_date, recipes.len());
+            self.announce_articles(to_announce).await;
         }
 
         // Read the cache for the requested page
@@ -223,9 +224,8 @@ impl Server {
             if follow_obj.object != "https://cha-cu.it/users/chef" {
                 println!("Unknown object: {}", follow_obj.object);
             } else {
-                println!("Get Follow object from {}", follow_obj.actor);
-                let mut inbox : String = Server::get_inbox(&follow_obj.actor).await.unwrap_or(String::new());
-                inbox.remove(0); inbox.pop();
+                println!("Get Follow object from {} {}", follow_obj.actor, body);
+                let inbox = Server::get_inbox(&follow_obj.actor).await.unwrap_or(String::new());
                 server.followers.accept(follow_obj, inbox).await;
             }
             return String::from("{}");
@@ -313,11 +313,13 @@ impl Server {
         fs::read_to_string(format!("{}/{}.json", self.config.cache_dir, page))
     }
 
-    fn update_cache(&self, sorted_recipes: Vec<(&PathBuf, SystemTime)>) {
+    fn update_cache(&self, sorted_recipes: Vec<(&PathBuf, SystemTime)>, previous_nb_articles: usize) -> Vec<Value> {
         let chunked_recipes: Vec<Vec<_>> = sorted_recipes.chunks(12).map(|chunk| chunk.to_vec()).collect();
         let max_page: usize = chunked_recipes.len();
         let mut idx_page = 0;
         const HEADER_TITLE_REGEX: &str = r#"title: ([^\n]+)\n"#;
+        let mut idx_article = sorted_recipes.len();
+        let mut to_announce : Vec<Value> = Vec::new();
         let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
         for chunk in chunked_recipes {
             let mut articles = Vec::new();
@@ -329,28 +331,56 @@ impl Server {
                 let datetime: DateTime<Utc> = markdown_file.1.into();
                 let published = datetime.format("%+").to_string();
                 let article = json!({
-                    "actor": format!("https://{}/users/{}", self.config.domain, self.config.user),
-                    "cc": [], // TODO from followers
+                    "@context": [
+                        "https://www.w3.org/ns/activitystreams",
+                        {
+                            "ostatus": "http://ostatus.org#",
+                            "atomUri": "ostatus:atomUri",
+                            "inReplyToAtomUri": "ostatus:inReplyToAtomUri",
+                            "conversation": "ostatus:conversation",
+                            "sensitive": "as:sensitive",
+                            "toot": "http://joinmastodon.org/ns#",
+                            "votersCount": "toot:votersCount"
+                        }
+                    ],
                     "id": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
+                    "type": "Create",
+                    "actor": format!("https://{}/users/{}", self.config.domain, self.config.user),
+                    "published": published,
                     "to": [
                         "https://www.w3.org/ns/activitystreams#Public"
                     ],
-                    "type": "Create",
+                    "cc": [
+                        format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
+                    ],
                     "object": {
+                        "id": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
+                        "type": "Article",
+                        "summary": null,
+                        "inReplyTo": null,
+                        "published": published,
+                        "url": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
+                        "attributedTo": format!("https://{}/users/{}", self.config.domain, self.config.user),
                         "to": [
                             "https://www.w3.org/ns/activitystreams#Public"
                         ],
-                        "type": String::from("Article"),
-                        "url": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
-                        "name": match_title.get(1).map_or("ERR", |m| m.as_str()).to_owned(),
-                        "id": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
-                        "attributedTo": format!("{}@{}", self.config.user, self.config.domain),
-                        "mediaType": "text/markdown".to_owned(),
+                        "cc": [
+                            format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
+                        ],
+                        "sensitive": false,
+                        "atomUri": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
                         "content": markdown,
-                        "license": self.config.license,
-                        "published": published,
+                        "name": match_title.get(1).map_or("Chalut!", |m| m.as_str()).to_owned(),
+                        "mediaType": String::from("text/markdown"),
+                        "attachment": [],
+                        "tag": [],
+                        "license": self.config.license
                     }
                 });
+                if idx_article > previous_nb_articles {
+                    to_announce.push(article.clone());
+                }
+                idx_article -= 1;
                 articles.push(article);
             }
 
@@ -394,6 +424,7 @@ impl Server {
             ).unwrap();
             idx_page += 1;
         }
+        to_announce
     }
 
     /**
@@ -404,6 +435,27 @@ impl Server {
         let body = client.get(actor).header(reqwest::header::ACCEPT, "application/activity+json")
             .send().await.unwrap().text().await.unwrap();
         let object: Value = serde_json::from_str(&body).unwrap();
-        Ok(object.get("inbox").unwrap().to_string())
+        Ok(object["inbox"].as_str().unwrap().to_owned())
+    }
+
+    /**
+     * Announce new articles to followers
+     * @param self
+     * @param to_announce   Articles to announce
+     */
+    async fn announce_articles(&self, to_annnounce: Vec<Value>) {
+        let followers = self.followers.followers();
+        let mut inboxes: Vec<String> = Vec::new();
+        for follower in followers {
+            inboxes.push(Server::get_inbox(&follower).await.unwrap());
+        }
+        // Get inbox from followers
+        for article in &to_annnounce {
+            // For each article, post to inboxes
+            for inbox in &inboxes {
+                println!("Announce {} to {}", article["id"].as_str().unwrap(), inbox);
+                self.followers.post_inbox(&inbox, article.clone()).await.unwrap();
+            }
+        }
     }
 }
