@@ -1,0 +1,18 @@
+{
+    "bind_address": "0.0.0.0:8080",
+    "domain": "cha-cu.it",
+    "user": "chef",
+    "preferred_name": "Kælinn",
+    "profile": "recettes",
+    "avatar": "logo.png",
+    "banner": "chactivityserver/profile.jpg",
+    "private_key": ".keys/privkey.pem",
+    "public_key": ".keys/pubkey.pem",
+    "description": "Un site de recettes cha-tisfaisantes ! Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont en grande partie réalisées avec l'aide de Kælinn.",
+    "cache_dir": ".cache",
+    "output_dir": "chadiverse",
+    "input_dir": "../content/recettes",
+    "manually_approve_followers": false,
+    "discoverable": true,
+    "license": "CC-0"
+}
