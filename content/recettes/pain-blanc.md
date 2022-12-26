@@ -26,7 +26,7 @@ duration: 13h30
 2. Mélanger et ajouter peu à peu l'eau.
 3. Pétrir 10 minutes.
 4. Laisser reposer 12h à température ambiante (recouvert).
-5. Chauffer au four à 225 °C pendant 30 minutes avec un peu d'eau. (Faire un trait au couteau pour avoir
+5. Chauffer au four à 225°C pendant 30 minutes avec un peu d'eau. (Faire un trait au couteau pour avoir
 un joli gonflage).
 6. Enfariner. Et cuire jusqu'à ce que le coloration soit correcte.
 

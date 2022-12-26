@@ -26,8 +26,22 @@ theme = "blist"
   # Enable search in header
   enableSearch = true
 
+  # Option to customize the search parameters of a page
+  # Below are the supported options; Note that including entire content
+  # may slowdown the loading of search results
+  # Title of page is included by default
+  searchKeys = [
+    "tags",
+    "date",
+    "categories",
+    "summary",
+    "content",
+    "link",
+    "author"
+  ]
+
   # Custom copyright - optional
-  copyright = "Copyright © 2022 - <a href=\"https://enconn.fr\">AmarOk</a>"
+  copyright = "Copyright © 2022-2023 - <a href=\"https://enconn.fr\">AmarOk</a> - Special thanks to Blist Hugo Theme"
   favicon = "/favicon.svg"
 
   logo = "/logo.png"
@@ -56,9 +70,15 @@ theme = "blist"
 [params.homepage.social]
   # Global params common for both languages
   title = "Suivez-nous !"
-  description = "On est présent à d'autres places :"
-  twitter = "https://twitter.com/AmarOk1412"
-  github = "https://github.com/AmarOk1412/Cha-cuit"
+  description = "En plus de pouvoir suivre @chef@cha-cu.it sur le Fediverse :"
+
+  [[params.homepage.social.icons]]
+    website = "github"
+    url = "https://github.com/AmarOk1412/Cha-Cuit"
+
+  [[params.homepage.social.icons]]
+    website = "mastodon"
+    url = "https://mastodon.social/@amarok"
 
 [build]
   writeStats = true
