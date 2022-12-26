@@ -358,7 +358,7 @@ impl Server {
                     attachments.push(json!({
                         "type": "Image",
                         "mediaType": "image/jpeg", // TODO png
-                        "url": format!("https://{}/{}{}", self.config.domain, self.config.static_image_dir, image.file_name().unwrap().to_str().unwrap()),
+                        "url": format!("https://{}/{}{}/{}", self.config.domain, self.config.static_image_dir, filename_without_extension, image.file_name().unwrap().to_str().unwrap()),
                     }));
                 }
                 let tags = re_tags_regex.captures(&markdown).unwrap();
