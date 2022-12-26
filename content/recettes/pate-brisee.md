@@ -27,11 +27,11 @@ duration: 45min
 2. Ajouter petit à petit l'eau juste pour que la mixture se tienne entre les doigts.
 3. Envelopper le bol de pellicule plastique et réfrigérer 30 minutes.
 
-![La boule pour le réfrigérateur](/pate-brisee-step-3.jpg)
+![La boule pour le réfrigérateur](/img/pate-brisee/pate-brisee-step-3.jpg)
 
 4. Abaisser la pâte jusqu'à quelques mm d'épaisseur. Mettre dans le fond de tarte.
 
-![La pâte est prête](/pate-brisee-step-4.jpg)
+![La pâte est prête](/img/pate-brisee/pate-brisee-step-4.jpg)
 
 
 # Notes

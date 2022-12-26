@@ -3,7 +3,7 @@ title: Crème pâtissière
 date: 2022-12-10
 tags: ["sucré", "desserts", "crème"]
 duration: 3h30
-thumbnail: "/creme-patissiere.jpg"
+thumbnail: "/img/creme-patissiere/creme-patissiere.jpg"
 ---
 
 # Ingrédients
@@ -25,17 +25,17 @@ thumbnail: "/creme-patissiere.jpg"
 
 1. Dans une casserole, faire frémir le lait à feu moyen avec les graines et la gousse de vanille.
 
-![Début du mélange](/creme-patissiere-step-1.jpg)
+![Début du mélange](/img/creme-patissiere/creme-patissiere-step-1.jpg)
 
 2. Dans une autre casserole, mélanger sucre, farine, oeufs et mélanger jusqu'à obtenir un mélange
 homogène.
 
-![Le mélange](/creme-patissiere-step-2.jpg)
+![Le mélange](/img/creme-patissiere/creme-patissiere-step-2.jpg)
 
 3. Ajouter le lait au mélange et chauffer à feu moyen jusqu'à épaississement.
 4. Transvaser dans un bol, laisser tiédir, puis réfrigérer 3h.
 
-![La crème](/creme-patissiere-step-4.jpg)
+![La crème](/img/creme-patissiere/creme-patissiere-step-4.jpg)
 
 
 # Notes

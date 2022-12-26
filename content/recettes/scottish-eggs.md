@@ -3,7 +3,7 @@ title: Scottish eggs
 date: 2022-11-27
 tags: ["écosse", "salé", "repas"]
 duration: 1h
-thumbnail: "/scottish-eggs.jpg"
+thumbnail: "/img/scottish-eggs/scottish-eggs.jpg"
 ---
 
 # Ingrédients
@@ -33,16 +33,16 @@ avec la viande hachée, la moutarde et les herbes dans un bol.
 4. Ajouter de la farine dans un bol, battre les œufs restants dans un autre
 et ajouter la chapelure dans un dernier bol.
 
-![Les différents bols](/scottish-eggs-step-4.jpg)
+![Les différents bols](/img/scottish-eggs/scottish-eggs-step-4.jpg)
 
 5. Enrouler les œufs durs de viande, rouler dans la farine, puis les oeufs,
 puis la chapelure.
 
-![Prêt à enfourner](/scottish-eggs-step-5.jpg)
+![Prêt à enfourner](/img/scottish-eggs/scottish-eggs-step-5.jpg)
 
 6. Faire frire ou rouler dans l'huile et cuire 30 minutes au four.
 
-![Les œufs prêts](/scottish-eggs.jpg)
+![Les œufs prêts](/img/scottish-eggs/scottish-eggs.jpg)
 
 # Notes
 

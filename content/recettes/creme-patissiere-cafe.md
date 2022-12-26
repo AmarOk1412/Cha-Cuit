@@ -3,7 +3,7 @@ title: Crème pâtissière au cha-fé
 date: 2022-12-18
 tags: ["sucré", "desserts", "crème", "coffee"]
 duration: 3h
-thumbnail: "/creme-patissiere-cafe.jpg"
+thumbnail: "/img/creme-patissiere-cafe/creme-patissiere-cafe.jpg"
 ---
 
 # Ingrédients
@@ -28,7 +28,7 @@ thumbnail: "/creme-patissiere-cafe.jpg"
 1. Dans une casserole, frémir le lait à feu doux. Faire son café à côté.
 2. Pendant ce temps, dans un bol, mélanger œufs, sucre, fécule.
 
-![Le mélange](/creme-patissiere-cafe-step-2.jpg)
+![Le mélange](/img/creme-patissiere-cafe/creme-patissiere-cafe-step-2.jpg)
 
 
 3. Ajouter le café au lait, le mélange et mélanger jusqu'à épaississement.

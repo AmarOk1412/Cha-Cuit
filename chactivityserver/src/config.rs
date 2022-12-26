@@ -39,6 +39,8 @@ pub struct Config {
     pub description: String,
     pub cache_dir: String,
     pub input_dir: String,
+    pub image_dir: String,
+    pub static_image_dir: String,
     pub output_dir: String,
     pub manually_approve_followers: bool,
     pub discoverable: bool,

@@ -26,15 +26,15 @@ duration: 2h30
 2. Dans une casserole faire chauffer avec l'eau une dizaine de minutes jusqu'à
 ce que les pommes soient molles.
 
-![La casserole](/compote-step-2.jpg)
+![La casserole](/img/compote-de-pommes/compote-step-2.jpg)
 
 3. Laisser refroidir, puis écraser les pommes pour la transformer en compote.
 
-![Les pommes écrasée](/compote-step-3.jpg)
+![Les pommes écrasée](/img/compote-de-pommes/compote-step-3.jpg)
 
 4. Transvaser dans un pot masson. Réfrigérer 2h.
 
-![La compote est prête](/compote-step-4.jpg)
+![La compote est prête](/img/compote-de-pommes/compote-step-4.jpg)
 
 
 # Notes

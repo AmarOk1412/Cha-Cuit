@@ -23,7 +23,7 @@ duration: 5min
 1. Verser le rhum, le jus de lime et le sirop de canne
 2. mélanger
 
-![Bon apéro !](/ti-punch.jpg)
+![Bon apéro !](/img/ti-punch/ti-punch.jpg)
 
 
 # Notes

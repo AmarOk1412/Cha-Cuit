@@ -3,7 +3,7 @@ title: Cassoulet
 date: 2022-11-21
 tags: ["france", "salé", "pois", "repas"]
 duration: 1 jour
-thumbnail: "/cassoulet.jpg"
+thumbnail: "/img/cassoulet/cassoulet.jpg"
 ---
 
 # Ingrédients

@@ -3,7 +3,7 @@ title: Verrines de crevettes et saumon fumé
 date: 2022-12-19
 tags: ["verrine", "apéro", "salé", "salmon", "nord"]
 duration: 10min
-thumbnail: "/verrine-saumon-crevettes.jpg"
+thumbnail: "/img/verrine-saumon-crevettes/verrine-saumon-crevettes.jpg"
 ---
 
 # Ingrédients
@@ -30,7 +30,7 @@ thumbnail: "/verrine-saumon-crevettes.jpg"
 
 1. Hacher le saumon fumé et le mettre au fond du verre.
 
-![Les ingrédients](/verrine-saumon-crevettes-step-1.jpg)
+![Les ingrédients](/img/verrine-saumon-crevettes/verrine-saumon-crevettes-step-1.jpg)
 
 2. Couper le poivrons en petits dés et mettre dans le verre.
 3. Poivrer au goût.

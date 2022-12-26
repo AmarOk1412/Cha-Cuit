@@ -12,6 +12,8 @@
     "cache_dir": ".cache",
     "output_dir": "chadiverse",
     "input_dir": "../content/recettes",
+    "image_dir": "../static/img/",
+    "static_image_dir": "img/",
     "manually_approve_followers": false,
     "discoverable": true,
     "license": "CC-0"

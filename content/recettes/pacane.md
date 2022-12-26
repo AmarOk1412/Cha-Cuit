@@ -3,7 +3,7 @@ title: Tarte pacane
 date: 2022-11-20
 tags: ["sucré", "noix", "québec", "pâtisserie", "desserts", "tartes"]
 duration: 6h
-thumbnail: "/pacane.jpg"
+thumbnail: "/img/pacane/pacane.jpg"
 ---
 
 # Ingrédients

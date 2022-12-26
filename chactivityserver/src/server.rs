@@ -37,7 +37,7 @@ use serde_json::Value;
 use regex::Regex;
 use std::fs;
 use std::io;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
 
@@ -183,6 +183,18 @@ impl Server {
      * @param page
      */
     async fn outbox_page(&self, page: usize) -> HttpResponse {
+        self.check_cache().await;
+
+        // Read the cache for the requested page
+        let content = self.read_cache_for_page(page).unwrap_or_else(|_| "{}".to_owned());
+        HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
+    }
+
+    /**
+     * Because we use a static website, update the cache to announce articles ASAP
+     * @param self
+     */
+    async fn check_cache(&self) {
         // Get the list of recipe paths
         let recipes = self.get_recipe_paths();
 
@@ -202,10 +214,6 @@ impl Server {
             let _ = self.write_date_and_article_count_to_cache(first_entry_date, recipes.len());
             self.announce_articles(to_announce).await;
         }
-
-        // Read the cache for the requested page
-        let content = self.read_cache_for_page(page).unwrap_or_else(|_| "{}".to_owned());
-        HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
     }
 
     /**
@@ -218,6 +226,7 @@ impl Server {
         let server = server.lock().unwrap();
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
+        server.check_cache().await;
 
         if base_obj.object_type == "Follow" {
             let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
@@ -258,6 +267,18 @@ impl Server {
             .map(|res| res.map(|e| e.path()))
             .collect::<Result<Vec<_>, io::Error>>()
             .unwrap()
+    }
+
+    fn get_images(&self, recipe: String) -> Vec<PathBuf> {
+        let path = format!("{}/{}", self.config.image_dir, recipe);
+        if Path::new(&path).exists() {
+            return fs::read_dir(&path)
+                        .unwrap()
+                        .map(|res| res.map(|e| e.path()))
+                        .collect::<Result<Vec<_>, io::Error>>()
+                        .unwrap()
+        }
+        Vec::new()
     }
 
     fn sort_recipes_by_modified_time(recipes: &[PathBuf]) -> Vec<(&PathBuf, SystemTime)> {
@@ -318,9 +339,11 @@ impl Server {
         let max_page: usize = chunked_recipes.len();
         let mut idx_page = 0;
         const HEADER_TITLE_REGEX: &str = r#"title: ([^\n]+)\n"#;
+        const HEADER_TAGS_REGEX: &str = r#"tags: \[([^\n]+)\]\n"#;
         let mut idx_article = sorted_recipes.len();
         let mut to_announce : Vec<Value> = Vec::new();
         let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
+        let re_tags_regex = Regex::new(HEADER_TAGS_REGEX).unwrap();
         for chunk in chunked_recipes {
             let mut articles = Vec::new();
             // Parse the markdown files into a collection of `Object`s.
@@ -330,6 +353,28 @@ impl Server {
                 let match_title = re_title_regex.captures(&markdown).unwrap();
                 let datetime: DateTime<Utc> = markdown_file.1.into();
                 let published = datetime.format("%+").to_string();
+                let mut attachments : Vec<Value> = Vec::new();
+                for image in self.get_images(filename_without_extension.to_string()) {
+                    attachments.push(json!({
+                        "type": "Image",
+                        "mediaType": "image/jpeg", // TODO png
+                        "url": format!("https://{}/{}{}", self.config.domain, self.config.static_image_dir, image.file_name().unwrap().to_str().unwrap()),
+                    }));
+                }
+                let tags = re_tags_regex.captures(&markdown).unwrap();
+                let tags = tags.get(1).map_or("", |m| m.as_str()).to_owned();
+                let tags: Vec<&str> = tags.split(',').collect();
+                let mut tags_value : Vec<Value> = Vec::new();
+                for tag in tags {
+                    let mut tag = String::from(tag);
+                    tag = tag.replace("\"", "");
+                    tag = tag.replace(" ", "");
+                    tags_value.push(json!({
+                        "type": "Hashtag",
+                        "href": format!("https://{}/tags/{}", self.config.domain, tag),
+                        "name": format!("#{}", tag)
+                    }));
+                }
                 let article = json!({
                     "@context": [
                         "https://www.w3.org/ns/activitystreams",
@@ -372,8 +417,8 @@ impl Server {
                         "content": markdown,
                         "name": match_title.get(1).map_or("Chalut!", |m| m.as_str()).to_owned(),
                         "mediaType": String::from("text/markdown"),
-                        "attachment": [],
-                        "tag": [],
+                        "attachment": attachments,
+                        "tag": tags_value,
                         "license": self.config.license
                     }
                 });

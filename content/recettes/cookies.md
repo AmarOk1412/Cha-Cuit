@@ -3,7 +3,7 @@ title: Cookies
 date: 2022-12-20
 tags: ["sucré", "dessert", "chocolat"]
 duration: 30min
-thumbnail: "/cookies.jpg"
+thumbnail: "/img/cookies/cookies.jpg"
 ---
 
 # Ingrédients
@@ -30,20 +30,20 @@ thumbnail: "/cookies.jpg"
 
 1. Mélanger beurre, farine, sucre, levure et sel dans un bol.
 
-![Premier mélange](/cookies-step-1.jpg)
+![Premier mélange](/img/cookies/cookies-step-1.jpg)
 
 2. Ajouter le chocolat et mélanger.
 
-![Avec le chocolat](/cookies-step-2.jpg)
+![Avec le chocolat](/img/cookies/cookies-step-2.jpg)
 
 3. Ajouter l'œuf et mélanger.
 
-![Avec l'œuf](/cookies-step-3.jpg)
+![Avec l'œuf](/img/cookies/cookies-step-3.jpg)
 
 4. Entre les mains, former des boules de pâte et écraser pour
 donner la forme du cookie voulue. Disposer sur la plaque de cuisson.
 
-![Prêt à enfourner](/cookies-step-4.jpg)
+![Prêt à enfourner](/img/cookies/cookies-step-4.jpg)
 
 
 5. Enfouter 15 minutes à 180°C.

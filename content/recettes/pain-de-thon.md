@@ -3,7 +3,7 @@ title: Pain de Thon
 date: 2022-12-24
 tags: ["salé", "cake", "tuna"]
 duration: 1h
-thumbnail: "/pain-thon.jpg"
+thumbnail: "/img/pain-thon/pain-thon.jpg"
 ---
 
 # Ingrédients
@@ -29,24 +29,24 @@ thumbnail: "/pain-thon.jpg"
 
 1. Préchauffer le four à 180°C.
 
-![Le bol sans lait](/pain-thon-step-1.jpg)
+![Le bol sans lait](/img/pain-thon/pain-thon-step-1.jpg)
 
 2. Dans un saladier, mélanger farine, levure, œufs, huile, jus de citron, et ajouter le lait au
 fur et à mesure.
 
-![Le bol avec lait](/pain-thon-step-2.jpg)
+![Le bol avec lait](/img/pain-thon/pain-thon-step-2.jpg)
 
 3. Ajouter le thon pour avoir une texture homogène.
 4. Ajouter le gruyère, tout en mélangant.
 
-![La pâte prête](/pain-thon-step-4.jpg)
+![La pâte prête](/img/pain-thon/pain-thon-step-4.jpg)
 
 
 5. Transvaser dans un plat.
 6. Enfourner 30 minutes (possible de vérifier la cuisson à la couleur et en utilisant un couteau où
 la pointe doit ressortir sêche).
 
-![À table](/pain-thon-step-6.jpg)
+![À table](/img/pain-thon/pain-thon-step-6.jpg)
 
 
 # Notes
