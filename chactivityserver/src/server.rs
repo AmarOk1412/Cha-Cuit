@@ -35,8 +35,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use regex::Regex;
-use std::fs;
-use std::io;
+use std::collections::HashSet;
+use std::{fs, io};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
@@ -480,6 +480,13 @@ impl Server {
         let body = client.get(actor).header(reqwest::header::ACCEPT, "application/activity+json")
             .send().await.unwrap().text().await.unwrap();
         let object: Value = serde_json::from_str(&body).unwrap();
+        let inbox = object["endpoints"].as_object();
+        if inbox.is_some() {
+            let inbox = inbox.unwrap()["sharedInbox"].as_str();
+            if inbox.is_some() {
+                return Ok(inbox.unwrap().to_owned())
+            }
+        }
         Ok(object["inbox"].as_str().unwrap().to_owned())
     }
 
@@ -490,9 +497,9 @@ impl Server {
      */
     async fn announce_articles(&self, to_annnounce: Vec<Value>) {
         let followers = self.followers.followers();
-        let mut inboxes: Vec<String> = Vec::new();
+        let mut inboxes = HashSet::new();
         for follower in followers {
-            inboxes.push(Server::get_inbox(&follower).await.unwrap());
+            inboxes.insert(Server::get_inbox(&follower).await.unwrap());
         }
         // Get inbox from followers
         for article in &to_annnounce {
