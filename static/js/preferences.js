@@ -2,11 +2,11 @@
 // TODO i18n
 // TODO docs
 function farenheit_to_celsius(value) {
-    return Math.round(parseInt(value) / 1.8 - 32)
+    return Math.round((parseInt(value) - 32 / 1.8))
 }
 
 function celsius_to_fahrenheit(value) {
-    return Math.round((parseInt(value) + 32) * 1.8)
+    return Math.round((parseInt(value) * 1.8) + 32)
 }
 
 const INGREDIENT_DATA = [
