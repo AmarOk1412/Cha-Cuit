@@ -32,7 +32,20 @@
         <circle cx="12" cy="12" r="9" />
         <polyline points="12 7 12 12 15 15" />
       </svg>
-      {{ .Params.duration }}&nbsp;
+      {{ .Params.duration }}&nbsp;&bull;&nbsp;
+      <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 0 24 24" width="16" fill="currentColor">
+        <path d="M0 0h24v24H0z" fill="none"/>
+        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+      </svg>
+      &nbsp;
+      <div id="likes">0</div>&nbsp;Favoris
+      &nbsp;&bull;&nbsp;
+      <svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 0 24 24" width="16" fill="currentColor">
+        <path d="M0 0h24v24H0z" fill="none"/><path d="M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z"/>
+      </svg>
+      &nbsp;
+      <div id="boost">0</div>&nbsp;Partages
+      &nbsp;
       {{ if not (or (or .Site.Params.hideOtherLanguages .Params.hideOtherLanguages) false) }}
         {{ if .IsTranslated -}}
           {{- $sortedTranslations := sort .Translations "Site.Language.Weight" -}}
@@ -57,6 +70,27 @@
     </div>
 
   </article>
+
+<script>
+    var resource = window.location.pathname.slice(0,-1)
+    fetch('/users/chef/likes?object=' + resource + '&wanted_type=like')
+    .then(res => res.json())
+    .then(out => {
+      var likesDiv = document.getElementById("likes")
+      likesDiv.innerText = out.length
+    })
+    .catch(err => { throw err });
+    fetch('/users/chef/likes?object=' + resource + '&wanted_type=boost')
+    .then(res => res.json())
+    .then(out => {
+      var boostDiv = document.getElementById("boost")
+      boostDiv.innerText = out.length
+    })
+    .catch(err => { throw err });
+
+
+
+</script>
 
   {{- partial "social.html" . -}}
 {{ end }}

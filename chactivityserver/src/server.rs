@@ -26,6 +26,7 @@
  **/
 use crate::config::Config;
 use crate::follow::Followers;
+use crate::likes::Likes;
 use crate::profile::Profile;
 
 use actix_web::{HttpResponse, Responder, web::{Bytes, Data, Query}};
@@ -46,6 +47,12 @@ pub struct WebFingerRequest {
     pub resource: String
 }
 
+#[derive(Debug, Deserialize)]
+pub struct LikesRequest {
+    pub object: String,
+    pub wanted_type: String
+}
+
 #[derive(Deserialize)]
 pub struct OutboxParams {
     pub page: Option<u32>
@@ -57,6 +64,20 @@ pub struct ActivityPubRequest {
     pub object_type: String,
     #[serde(rename = "@context", default)]
     pub context: Value,
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct LikeObject {
+    #[serde(default)]
+    pub id: String,
+    #[serde(default)]
+    pub actor: String,
+    #[serde(default)]
+    pub object: String,
+    #[serde(rename = "type", default)]
+    pub object_type: String,
+    #[serde(rename = "@context", default)]
+    pub context: String,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -78,6 +99,7 @@ pub struct Server {
     pub config: Config,
     pub followers: Followers,
     pub profile: Profile,
+    pub likes: Likes,
 }
 
 impl Server {
@@ -221,9 +243,10 @@ impl Server {
      * For now, only follow requests are supported
      * @todo receive articles
      * @todo receive likes
+     * @todo check signatures
      */
     pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes) -> String {
-        let server = server.lock().unwrap();
+        let mut server = server.lock().unwrap();
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
         server.check_cache().await;
@@ -238,16 +261,37 @@ impl Server {
                 server.followers.accept(follow_obj, inbox).await;
             }
             return String::from("{}");
+        } else if base_obj.object_type == "Like" {
+            let like_obj: LikeObject = serde_json::from_str(&body).unwrap();
+            println!("Like {} from {}", like_obj.object, like_obj.actor);
+            server.likes.like(&like_obj.object, &like_obj.actor);
+        } else if base_obj.object_type == "Announce" {
+            let announce_obj: LikeObject = serde_json::from_str(&body).unwrap();
+            println!("Boost {} from {}", announce_obj.object, announce_obj.actor);
+            server.likes.boost(&announce_obj.object, &announce_obj.actor);
         }
 
         let request: Value = serde_json::from_str(&body).unwrap();
-        if request.get("type").unwrap().as_str().unwrap() == "Undo"
-            && request.get("object").unwrap().get("type").unwrap().as_str().unwrap() == "Follow" {
-            let mut f = server.followers.followers();
-            let actor = request.get("object").unwrap().get("actor").unwrap().as_str().unwrap();
-            println!("Get Unfollow object from {}", actor);
-            f.retain(|x| x != &*actor);
-            server.followers.write_followers(&f);
+        if request.get("type").unwrap().as_str().unwrap() == "Undo" {
+            let base_object = request.get("object").unwrap();
+            let obj_type = base_object.get("type").unwrap().as_str().unwrap();
+            if obj_type == "Follow" {
+                let mut f = server.followers.followers();
+                let actor = base_object.get("actor").unwrap().as_str().unwrap();
+                println!("Get Unfollow object from {}", actor);
+                f.retain(|x| x != &*actor);
+                server.followers.write_followers(&f);
+            } else if obj_type == "Like" {
+                let object = base_object.get("object").unwrap().as_str().unwrap().to_string();
+                let actor = base_object.get("actor").unwrap().as_str().unwrap().to_string();
+                println!("UnLike {} from {}", object, actor);
+                server.likes.unlike(&object, &actor);
+            } else if obj_type == "Announce" {
+                let object = base_object.get("object").unwrap().as_str().unwrap().to_string();
+                let actor = base_object.get("actor").unwrap().as_str().unwrap().to_string();
+                println!("UnBoost {} from {}", object, actor);
+                server.likes.unboost(&object, &actor);
+            }
             return String::from("{}");
         } else if request.get("type").unwrap().as_str().unwrap() == "Delete" {
             return String::from("{}");
@@ -258,6 +302,18 @@ impl Server {
             Ok(text) => format!("{}\n", text),
             Err(_) => "".to_owned(),
         }
+    }
+
+
+    /**
+     * Returns likes and boost per recipe
+     * @param server
+     * @param info         object is the url of the recipe and wanted_type (like/boost)
+     * @return the array of people who boost/like the recipe
+     */
+     pub async fn likes(server: Data<Mutex<Server>>, info: Query<LikesRequest>) -> impl Responder {
+        let server = server.lock().unwrap();
+        HttpResponse::Ok().json(server.likes.data(&info.object, &info.wanted_type))
     }
 
     // Utils
@@ -464,7 +520,7 @@ impl Server {
 
             // Cache file
             std::fs::write(
-                format!(".cache/{}.json", idx_page + 1),
+                format!("{}/{}.json", &self.config.cache_dir, idx_page + 1),
                 serde_json::to_string_pretty(&outbox_json).unwrap(),
             ).unwrap();
             idx_page += 1;

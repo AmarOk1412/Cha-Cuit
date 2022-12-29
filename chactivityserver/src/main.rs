@@ -27,11 +27,13 @@
 
 mod config;
 mod follow;
+mod likes;
 mod profile;
 mod server;
 
 use crate::config::Config;
 use crate::follow::Followers;
+use crate::likes::Likes;
 use crate::profile::Profile;
 use crate::server::Server;
 
@@ -65,10 +67,12 @@ async fn run_server() {
     let profile = Profile {
         config: config.clone(),
     };
+    let likes = Likes::new(config.clone());
     let server = Data::new(Mutex::new(Server {
         config: config.clone(),
         followers,
-        profile
+        profile,
+        likes
     }));
     HttpServer::new(move || {
         App::new()
@@ -78,6 +82,7 @@ async fn run_server() {
             .route("/users/chef/inbox", web::post().to(Server::inbox))
             .route("/users/chef/outbox", web::get().to(Server::outbox))
             .route("/users/chef/followers", web::get().to(Server::user_followers))
+            .route("/users/chef/likes", web::get().to(Server::likes))
     })
     .bind(&*config.bind_address).unwrap()
     .run()
