@@ -17,7 +17,7 @@ thumbnail: "/img/profiteroles-chocolat/profiteroles.jpg"
 + 125ml d'eau
 + 55g de beurre
 + 1 pincée de sel
-+ 1 c. à soupe de sucre
++ 1 c. à soupe de [sucre](/recettes/sucre-maison)
 
 # Équipement
 

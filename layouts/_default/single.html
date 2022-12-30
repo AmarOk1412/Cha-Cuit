@@ -71,26 +71,23 @@
 
   </article>
 
-<script>
-    var resource = window.location.pathname.slice(0,-1)
-    fetch('/users/chef/likes?object=' + resource + '&wanted_type=like')
-    .then(res => res.json())
-    .then(out => {
-      var likesDiv = document.getElementById("likes")
-      likesDiv.innerText = out.length
-    })
-    .catch(err => { throw err });
-    fetch('/users/chef/likes?object=' + resource + '&wanted_type=boost')
-    .then(res => res.json())
-    .then(out => {
-      var boostDiv = document.getElementById("boost")
-      boostDiv.innerText = out.length
-    })
-    .catch(err => { throw err });
-
-
-
-</script>
+  <script>
+      var resource = window.location.pathname.slice(0,-1)
+      fetch('/users/chef/likes?object=' + resource + '&wanted_type=like')
+      .then(res => res.json())
+      .then(out => {
+        var likesDiv = document.getElementById("likes")
+        likesDiv.innerText = out.length
+      })
+      .catch(err => { throw err });
+      fetch('/users/chef/likes?object=' + resource + '&wanted_type=boost')
+      .then(res => res.json())
+      .then(out => {
+        var boostDiv = document.getElementById("boost")
+        boostDiv.innerText = out.length
+      })
+      .catch(err => { throw err });
+  </script>
 
   {{- partial "social.html" . -}}
 {{ end }}

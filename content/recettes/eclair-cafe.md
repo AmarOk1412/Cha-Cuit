@@ -13,7 +13,7 @@ thumbnail: "/img/eclair-cafe/eclair-cafe.jpg"
 + 100g beurre
 + 120g farine
 + 1 c. à café de sel
-+ 1 c. à soupe de sucre
++ 1 c. à soupe de [sucre](/recettes/sucre-maison)
 + 4 œufs
 
 + 12 cl café (ou 3 c. à soupe d'arôme)

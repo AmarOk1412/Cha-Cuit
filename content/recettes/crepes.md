@@ -10,7 +10,7 @@ duration: 1h
 + 300g farine
 + 75cl lait
 + 3c à soupe d'huile
-+ 3c à soupe de sucre
++ 3c à soupe de [sucre](/recettes/sucre-maison)
 + 3 œufs
 + Bonus: rhum ou bière.
 
