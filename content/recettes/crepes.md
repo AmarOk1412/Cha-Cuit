@@ -1,5 +1,5 @@
 ---
-title: Crêpes
+title: Crêpes x 18
 date: 2022-11-20
 tags: ["sucré", "repas"]
 duration: 1h

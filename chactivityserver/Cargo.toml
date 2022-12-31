@@ -3,6 +3,7 @@ name = "chactivityserver"
 version = "0.1.0"
 authors = ["Sébastien (AmarOk) Blin"]
 edition = "2018"
+license = "BSD 2 Clause"
 
 [dependencies]
 actix-web = "4.2.1"

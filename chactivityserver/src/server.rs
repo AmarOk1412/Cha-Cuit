@@ -1,28 +1,26 @@
 /**
  * Copyright (c) 2022, Sébastien Blin <sebastien.blin@enconn.fr>
- * All rights reserved.
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
  *
- * * Redistributions of source code must retain the above copyright
- *  notice, this list of conditions and the following disclaimer.
- * * Redistributions in binary form must reproduce the above copyright
- *  notice, this list of conditions and the following disclaimer in the
- *  documentation and/or other materials provided with the distribution.
- * * Neither the name of the University of California, Berkeley nor the
- *  names of its contributors may be used to endorse or promote products
- *  derived from this software without specific prior written permission.
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL THE REGENTS AND CONTRIBUTORS BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 1. Redistributions of source code must retain the above copyright notice,
+ * this list of conditions and the following disclaimer.
+ *
+ * 2. Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
+ * and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 use crate::config::Config;
 use crate::follow::Followers;
@@ -232,7 +230,7 @@ impl Server {
         let first_entry_date = Server::get_first_entry_date(&sorted_recipes);
         if first_entry_date > file_date || file_nb_articles != recipes.len() {
             println!("Refreshing cache.");
-            let to_announce = self.update_cache(sorted_recipes, file_nb_articles);
+            let to_announce = self.update_cache(sorted_recipes, file_date);
             let _ = self.write_date_and_article_count_to_cache(first_entry_date, recipes.len());
             self.announce_articles(to_announce).await;
         }
@@ -390,13 +388,12 @@ impl Server {
         fs::read_to_string(format!("{}/{}.json", self.config.cache_dir, page))
     }
 
-    fn update_cache(&self, sorted_recipes: Vec<(&PathBuf, SystemTime)>, previous_nb_articles: usize) -> Vec<Value> {
+    fn update_cache(&self, sorted_recipes: Vec<(&PathBuf, SystemTime)>, previous_entry_date: u64) -> Vec<Value> {
         let chunked_recipes: Vec<Vec<_>> = sorted_recipes.chunks(12).map(|chunk| chunk.to_vec()).collect();
         let max_page: usize = chunked_recipes.len();
         let mut idx_page = 0;
         const HEADER_TITLE_REGEX: &str = r#"title: ([^\n]+)\n"#;
         const HEADER_TAGS_REGEX: &str = r#"tags: \[([^\n]+)\]\n"#;
-        let mut idx_article = sorted_recipes.len();
         let mut to_announce : Vec<Value> = Vec::new();
         let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
         let re_tags_regex = Regex::new(HEADER_TAGS_REGEX).unwrap();
@@ -409,6 +406,7 @@ impl Server {
                 let match_title = re_title_regex.captures(&markdown).unwrap();
                 let datetime: DateTime<Utc> = markdown_file.1.into();
                 let published = datetime.format("%+").to_string();
+                let entry_date = datetime.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
                 let mut attachments : Vec<Value> = Vec::new();
                 for image in self.get_images(filename_without_extension.to_string()) {
                     attachments.push(json!({
@@ -478,10 +476,9 @@ impl Server {
                         "license": self.config.license
                     }
                 });
-                if idx_article > previous_nb_articles {
+                if entry_data > previous_entry_date {
                     to_announce.push(article.clone());
                 }
-                idx_article -= 1;
                 articles.push(article);
             }
 

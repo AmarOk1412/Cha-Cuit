@@ -35,7 +35,7 @@ de temps en temps. Arrêter quand la température atteint 127°C.
 
 ![Le sirop](/img/sucre-maison/sucre-maison-step-2.jpg)
 
-![À 127°C !](/img/sucre-maison/sucre-maison-step-2-2.jpg)
+![L'ébulition](/img/sucre-maison/sucre-maison-step-2-2.jpg)
 
 3. Retirer du feu et avec le batteur, transformer en sucre (c'est rapide). Les morceaux
 seront de toute tailles. Décoller aussi au plus possible le sucre des bords.
