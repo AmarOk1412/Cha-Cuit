@@ -240,7 +240,6 @@ impl Server {
      * User's inbox. This will receive all object from the fediverse (articles/messages/follow requests/likes)
      * For now, only follow requests are supported
      * @todo receive articles
-     * @todo receive likes
      * @todo check signatures
      */
     pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes) -> String {
