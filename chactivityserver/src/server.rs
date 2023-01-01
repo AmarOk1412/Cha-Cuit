@@ -406,7 +406,7 @@ impl Server {
                 let match_title = re_title_regex.captures(&markdown).unwrap();
                 let datetime: DateTime<Utc> = markdown_file.1.into();
                 let published = datetime.format("%+").to_string();
-                let entry_date = datetime.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+                let entry_date = markdown_file.1.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
                 let mut attachments : Vec<Value> = Vec::new();
                 for image in self.get_images(filename_without_extension.to_string()) {
                     attachments.push(json!({
@@ -415,10 +415,14 @@ impl Server {
                         "url": format!("https://{}/{}{}/{}", self.config.domain, self.config.static_image_dir, filename_without_extension, image.file_name().unwrap().to_str().unwrap()),
                     }));
                 }
-                let tags = re_tags_regex.captures(&markdown).unwrap();
-                let tags = tags.get(1).map_or("", |m| m.as_str()).to_owned();
-                let tags: Vec<&str> = tags.split(',').collect();
                 let mut tags_value : Vec<Value> = Vec::new();
+                let mut tags = self.config.tags.clone();
+                if tags.len() == 0 {
+                    let tags_article = re_tags_regex.captures(&markdown).unwrap();
+                    let tags_article = tags_article.get(1).map_or("", |m| m.as_str()).to_owned();
+                    let tags_article: Vec<&str> = tags_article.split(',').collect();
+                    tags = tags_article.iter().map(|&s|s.into()).collect();
+                }
                 for tag in tags {
                     let mut tag = String::from(tag);
                     tag = tag.replace("\"", "");
@@ -476,7 +480,7 @@ impl Server {
                         "license": self.config.license
                     }
                 });
-                if entry_data > previous_entry_date {
+                if entry_date > previous_entry_date {
                     to_announce.push(article.clone());
                 }
                 articles.push(article);

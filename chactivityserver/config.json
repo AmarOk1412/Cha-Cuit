@@ -16,5 +16,6 @@
     "static_image_dir": "img/",
     "manually_approve_followers": false,
     "discoverable": true,
-    "license": "CC-0"
+    "license": "CC-0",
+    "tags": ["cuisine", "recette", "mastocats"]
 }
