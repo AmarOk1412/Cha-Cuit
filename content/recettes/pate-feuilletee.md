@@ -35,6 +35,11 @@ un carré.
 4. Aplatir la boule en laissant la place au centre pour le beurre (il faut
 donc que le carré de pâte soit plus long de chaque côté que le beurre) et
 rabattre les bords pour refermer le carré.
+
+![Le carré de beurre au milieu](/img/pate-feuilletee/pate-feuilletee-step-3.jpg)
+
+![On referme](/img/pate-feuilletee/pate-feuilletee-step-4.jpg)
+
 5. Abaisser la pâte en un rectangle 3 fois plus long que large,
 replier, tourner d'un quart de tour, recommencer et laisser reposer
 1h au frigo (marquer le haut pour les prochains tours).
