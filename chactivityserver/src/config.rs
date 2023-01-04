@@ -44,5 +44,5 @@ pub struct Config {
     pub discoverable: bool,
     pub license: String,
     pub public_key: String,
-    pub tags: Vec<String>
+    pub tags: Vec<String>,
 }

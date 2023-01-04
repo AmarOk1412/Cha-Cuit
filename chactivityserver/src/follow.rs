@@ -26,8 +26,8 @@ use crate::config::Config;
 use crate::server::FollowObject;
 
 use actix_web::{HttpResponse, Responder};
-use serde_json::json;
 use http_sig::*;
+use serde_json::json;
 use serde_json::Value;
 use std::fs;
 use std::fs::{File, OpenOptions};
@@ -37,7 +37,7 @@ use std::path::Path;
 
 #[derive(Debug, Clone)]
 pub struct Followers {
-    pub config: Config
+    pub config: Config,
 }
 
 impl Followers {
@@ -67,11 +67,12 @@ impl Followers {
      * instead of rewritting it
      */
     pub fn followers(&self) -> Vec<String> {
-        let mut followers : Vec<String> = Vec::new();
+        let mut followers: Vec<String> = Vec::new();
         if Path::new(&*format!("{}/followers", self.config.cache_dir)).exists() {
             let file = File::open(format!("{}/followers", self.config.cache_dir)).unwrap();
             let buf = BufReader::new(file);
-            followers = buf.lines()
+            followers = buf
+                .lines()
                 .map(|l| l.expect("Could not parse line"))
                 .collect();
         }
@@ -91,7 +92,7 @@ impl Followers {
             .append(false)
             .open(format!("{}/followers", self.config.cache_dir))
             .unwrap();
-        for follower in followers  {
+        for follower in followers {
             if let Err(e) = writeln!(file, "{}", follower) {
                 eprintln!("Couldn't write to file: {}", e);
             }
@@ -111,13 +112,18 @@ impl Followers {
         f.push(follow_obj.actor.clone());
         self.write_followers(&f);
         // Send accept to inbox of the actor
-        self.post_inbox(&actor_inbox, json!({
-            "@context": "https://www.w3.org/ns/activitystreams",
-            "id": format!("https://{}/users/{}", self.config.domain, self.config.user),
-            "type": "Accept",
-            "actor": format!("https://{}/users/{}", self.config.domain, self.config.user),
-            "object": follow_obj
-        })).await.unwrap();
+        self.post_inbox(
+            &actor_inbox,
+            json!({
+                "@context": "https://www.w3.org/ns/activitystreams",
+                "id": format!("https://{}/users/{}", self.config.domain, self.config.user),
+                "type": "Accept",
+                "actor": format!("https://{}/users/{}", self.config.domain, self.config.user),
+                "object": follow_obj
+            }),
+        )
+        .await
+        .unwrap();
     }
 
     /**
@@ -146,26 +152,34 @@ impl Followers {
     /**
      * Post JSON Value to a follower
      */
-    pub async fn post_inbox(&self, actor_inbox: &String, body: Value) -> Result<(), reqwest::Error> {
+    pub async fn post_inbox(
+        &self,
+        actor_inbox: &String,
+        body: Value,
+    ) -> Result<(), reqwest::Error> {
         let client = reqwest::Client::builder()
             .connection_verbose(true)
             .build()?;
 
         let config = SigningConfig::new(
-                &*format!("https://{}/users/{}#main-key", self.config.domain, self.config.user),
-                RsaSha256Sign::new_pem(&*fs::read(self.config.private_key.clone()).unwrap()).unwrap()
-            );
+            &*format!(
+                "https://{}/users/{}#main-key",
+                self.config.domain, self.config.user
+            ),
+            RsaSha256Sign::new_pem(&*fs::read(self.config.private_key.clone()).unwrap()).unwrap(),
+        );
         println!("Send Value to inbox: {}", actor_inbox);
 
         let req = client
-            .post(actor_inbox).json(&body)
+            .post(actor_inbox)
+            .json(&body)
             .header(reqwest::header::ACCEPT, "application/activity+json")
             .build()?
-            .signed(&config).unwrap();
+            .signed(&config)
+            .unwrap();
 
         let result = client.execute(req).await?.text().await?;
         println!("=>{}", result);
         Ok(())
     }
-
 }

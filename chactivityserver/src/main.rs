@@ -22,7 +22,6 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
-
 mod config;
 mod follow;
 mod likes;
@@ -35,9 +34,9 @@ use crate::likes::Likes;
 use crate::profile::Profile;
 use crate::server::Server;
 
-use actix_web::{web, App, HttpServer, web::Data};
-use std::sync::Mutex;
+use actix_web::{web, web::Data, App, HttpServer};
 use std::fs;
+use std::sync::Mutex;
 
 // TODO add logs
 
@@ -57,7 +56,7 @@ fn main() {
 }
 
 async fn run_server() {
-    let config_str = fs::read_to_string("config.json") ;
+    let config_str = fs::read_to_string("config.json");
     let config = serde_json::from_str::<Config>(&config_str.unwrap()).unwrap();
     let followers = Followers {
         config: config.clone(),
@@ -70,7 +69,7 @@ async fn run_server() {
         config: config.clone(),
         followers,
         profile,
-        likes
+        likes,
     }));
     HttpServer::new(move || {
         App::new()
@@ -79,10 +78,14 @@ async fn run_server() {
             .route("/users/chef", web::get().to(Server::profile))
             .route("/users/chef/inbox", web::post().to(Server::inbox))
             .route("/users/chef/outbox", web::get().to(Server::outbox))
-            .route("/users/chef/followers", web::get().to(Server::user_followers))
+            .route(
+                "/users/chef/followers",
+                web::get().to(Server::user_followers),
+            )
             .route("/users/chef/likes", web::get().to(Server::likes))
     })
-    .bind(&*config.bind_address).unwrap()
+    .bind(&*config.bind_address)
+    .unwrap()
     .run()
     .await
     .unwrap()

@@ -30,58 +30,58 @@ use serde_json::Value;
 
 #[derive(Debug, Clone)]
 pub struct Profile {
-  pub config: Config,
+    pub config: Config,
 }
 
 impl Profile {
     pub fn profile(&self) -> impl Responder {
         let profile_json = json!({
-            "@context": [
-              "https://www.w3.org/ns/activitystreams",
-              "https://w3id.org/security/v1",
-              Profile::mastodon_value()
-            ],
-            "id": format!("https://{}/users/{}", self.config.domain, self.config.user),
-            "type": "Person",
-            "following": format!("https://{}/users/{}/following", self.config.domain, self.config.user),
-            "followers": format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
-            "inbox": format!("https://{}/users/{}/inbox", self.config.domain, self.config.user),
-            "outbox": format!("https://{}/users/{}/outbox", self.config.domain, self.config.user),
-            "featuredTags": format!("https://{}/tags", self.config.domain),
-            "preferredUsername": format!("{}", self.config.user),
-            "name": format!("{}", self.config.preferred_name),
-            "summary": format!("{}", self.config.description),
-            "url": format!("https://{}/recettes/", self.config.domain),
-            "manuallyApprovesFollowers": self.config.manually_approve_followers,
-            "discoverable": self.config.discoverable,
-            "published": "2022-11-11T11:11:11Z", // TODO get oldest recipe
-            "devices": format!("https://{}/users/{}/collections/devices", self.config.domain, self.config.user), // TODO endpoint
-            "publicKey": {
-              "id": format!("https://{}/users/{}#main-key", self.config.domain, self.config.user),
-              "owner": format!("https://{}/users/{}", self.config.domain, self.config.user),
-              "publicKeyPem": std::fs::read_to_string(&*self.config.public_key).unwrap(),
-            },
-            "tag": [],
-            "attachment": [
-              {
-                "type": "PropertyValue",
-                "name": "website",
-                "value": format!("<a href=\"https://{}\" target=\"_blank\" rel=\"nofollow noopener noreferrer me\"><span class=\"invisible\">https://</)span><span class=\"\">{}</span><span class=\"invisible\"></span></a>", self.config.domain, self.config.domain)
-              }
-            ],
-            "endpoints": {
-              "sharedInbox": format!("https://{}/users/{}/inbox", self.config.domain, self.config.user)
-            },
-            "icon": {
-                "type": "Image",
-                "url": format!("https://{}/{}", self.config.domain, self.config.banner)
-            },
-            "image": {
-              "type": "Image",
-              "mediaType": "image/jpeg",
-              "url": format!("https://{}/{}", self.config.domain, self.config.avatar)
+          "@context": [
+            "https://www.w3.org/ns/activitystreams",
+            "https://w3id.org/security/v1",
+            Profile::mastodon_value()
+          ],
+          "id": format!("https://{}/users/{}", self.config.domain, self.config.user),
+          "type": "Person",
+          "following": format!("https://{}/users/{}/following", self.config.domain, self.config.user),
+          "followers": format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
+          "inbox": format!("https://{}/users/{}/inbox", self.config.domain, self.config.user),
+          "outbox": format!("https://{}/users/{}/outbox", self.config.domain, self.config.user),
+          "featuredTags": format!("https://{}/tags", self.config.domain),
+          "preferredUsername": format!("{}", self.config.user),
+          "name": format!("{}", self.config.preferred_name),
+          "summary": format!("{}", self.config.description),
+          "url": format!("https://{}/recettes/", self.config.domain),
+          "manuallyApprovesFollowers": self.config.manually_approve_followers,
+          "discoverable": self.config.discoverable,
+          "published": "2022-11-11T11:11:11Z", // TODO get oldest recipe
+          "devices": format!("https://{}/users/{}/collections/devices", self.config.domain, self.config.user), // TODO endpoint
+          "publicKey": {
+            "id": format!("https://{}/users/{}#main-key", self.config.domain, self.config.user),
+            "owner": format!("https://{}/users/{}", self.config.domain, self.config.user),
+            "publicKeyPem": std::fs::read_to_string(&*self.config.public_key).unwrap(),
+          },
+          "tag": [],
+          "attachment": [
+            {
+              "type": "PropertyValue",
+              "name": "website",
+              "value": format!("<a href=\"https://{}\" target=\"_blank\" rel=\"nofollow noopener noreferrer me\"><span class=\"invisible\">https://</)span><span class=\"\">{}</span><span class=\"invisible\"></span></a>", self.config.domain, self.config.domain)
             }
-          });
+          ],
+          "endpoints": {
+            "sharedInbox": format!("https://{}/users/{}/inbox", self.config.domain, self.config.user)
+          },
+          "icon": {
+              "type": "Image",
+              "url": format!("https://{}/{}", self.config.domain, self.config.banner)
+          },
+          "image": {
+            "type": "Image",
+            "mediaType": "image/jpeg",
+            "url": format!("https://{}/{}", self.config.domain, self.config.avatar)
+          }
+        });
         HttpResponse::Ok().json(profile_json)
     }
 

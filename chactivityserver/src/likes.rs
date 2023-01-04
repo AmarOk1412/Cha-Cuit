@@ -35,7 +35,6 @@ pub struct Likes {
 }
 
 impl Likes {
-
     /**
      * This structure is used to store the boost/likes per recipes
      * data is a json like:
@@ -51,13 +50,11 @@ impl Likes {
         let mut data = json!({});
         let path = format!("{}/likes.json", config.cache_dir);
         if Path::new(&path).exists() {
-            data = serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+            data =
+                serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
         }
 
-        Likes {
-            config,
-            data
-        }
+        Likes { config, data }
     }
 
     /**
@@ -79,15 +76,15 @@ impl Likes {
     pub fn unlike(&mut self, object: &String, actor: &String) {
         let mut like = self.data.get_mut(object);
         if !like.is_some() {
-            return
+            return;
         }
         like = like.unwrap().get_mut("like");
         if !like.is_some() {
-            return
+            return;
         }
         let likes = like.unwrap().as_array_mut();
         if !likes.is_some() {
-            return
+            return;
         }
         likes.unwrap().retain(|x| x.as_str().unwrap() != actor);
         self.save_data()
@@ -112,15 +109,15 @@ impl Likes {
     pub fn unboost(&mut self, object: &String, actor: &String) {
         let mut boost = self.data.get_mut(object);
         if !boost.is_some() {
-            return
+            return;
         }
         boost = boost.unwrap().get_mut("boost");
         if !boost.is_some() {
-            return
+            return;
         }
         let boosts = boost.unwrap().as_array_mut();
         if !boosts.is_some() {
-            return
+            return;
         }
         boosts.unwrap().retain(|x| x.as_str().unwrap() != actor);
         self.save_data()
@@ -151,7 +148,8 @@ impl Likes {
         std::fs::write(
             format!("{}/likes.json", &self.config.cache_dir),
             serde_json::to_string_pretty(&self.data).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
     }
 
     /**
@@ -179,5 +177,4 @@ impl Likes {
         self.data[object][wanted_type] = json!([v]);
         self.save_data()
     }
-
 }

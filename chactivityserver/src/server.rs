@@ -27,33 +27,36 @@ use crate::follow::Followers;
 use crate::likes::Likes;
 use crate::profile::Profile;
 
-use actix_web::{HttpResponse, Responder, web::{Bytes, Data, Query}};
+use actix_web::{
+    web::{Bytes, Data, Query},
+    HttpResponse, Responder,
+};
 use chrono::offset::Utc;
 use chrono::DateTime;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
-use regex::Regex;
 use std::collections::HashSet;
-use std::{fs, io};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
+use std::{fs, io};
 
 #[derive(Debug, Deserialize)]
 pub struct WebFingerRequest {
-    pub resource: String
+    pub resource: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct LikesRequest {
     pub object: String,
-    pub wanted_type: String
+    pub wanted_type: String,
 }
 
 #[derive(Deserialize)]
 pub struct OutboxParams {
-    pub page: Option<u32>
+    pub page: Option<u32>,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -111,7 +114,10 @@ impl Server {
      * @param web   The incoming web request
      * @return webfinger json response
      */
-    pub async fn webfinger(server: Data<Mutex<Server>>, info: Query<WebFingerRequest>) -> impl Responder {
+    pub async fn webfinger(
+        server: Data<Mutex<Server>>,
+        info: Query<WebFingerRequest>,
+    ) -> impl Responder {
         let server = server.lock().unwrap();
         if info.resource == format!("acct:{}@{}", server.config.user, server.config.domain) {
             return HttpResponse::Ok().json(json!({
@@ -185,7 +191,7 @@ impl Server {
      */
     fn outbox_page_0(&self) -> HttpResponse {
         let recipes = self.get_recipe_paths();
-        let max_page: usize = (recipes.len()/12)+1;
+        let max_page: usize = (recipes.len() / 12) + 1;
         // If no page provided, then describe the other pages
         let outbox_json = json!({
             "@context": "https://www.w3.org/ns/activitystreams",
@@ -206,7 +212,9 @@ impl Server {
         self.check_cache().await;
 
         // Read the cache for the requested page
-        let content = self.read_cache_for_page(page).unwrap_or_else(|_| "{}".to_owned());
+        let content = self
+            .read_cache_for_page(page)
+            .unwrap_or_else(|_| "{}".to_owned());
         HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
     }
 
@@ -222,9 +230,12 @@ impl Server {
         let sorted_recipes = Server::sort_recipes_by_modified_time(&recipes);
 
         // Create the cache directories if they do not exist
-        self.create_cache_directories().unwrap_or_else(|_| println!("Failed to create directories"));
+        self.create_cache_directories()
+            .unwrap_or_else(|_| println!("Failed to create directories"));
 
-        let (file_date, file_nb_articles) = self.read_date_and_article_count_from_cache().unwrap_or((0, 0));
+        let (file_date, file_nb_articles) = self
+            .read_date_and_article_count_from_cache()
+            .unwrap_or((0, 0));
 
         // Get the date of the first entry
         let first_entry_date = Server::get_first_entry_date(&sorted_recipes);
@@ -254,7 +265,9 @@ impl Server {
                 println!("Unknown object: {}", follow_obj.object);
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
-                let inbox = Server::get_inbox(&follow_obj.actor).await.unwrap_or(String::new());
+                let inbox = Server::get_inbox(&follow_obj.actor)
+                    .await
+                    .unwrap_or(String::new());
                 server.followers.accept(follow_obj, inbox).await;
             }
             return String::from("{}");
@@ -265,7 +278,9 @@ impl Server {
         } else if base_obj.object_type == "Announce" {
             let announce_obj: LikeObject = serde_json::from_str(&body).unwrap();
             println!("Boost {} from {}", announce_obj.object, announce_obj.actor);
-            server.likes.boost(&announce_obj.object, &announce_obj.actor);
+            server
+                .likes
+                .boost(&announce_obj.object, &announce_obj.actor);
         }
 
         let request: Value = serde_json::from_str(&body).unwrap();
@@ -279,13 +294,33 @@ impl Server {
                 f.retain(|x| x != &*actor);
                 server.followers.write_followers(&f);
             } else if obj_type == "Like" {
-                let object = base_object.get("object").unwrap().as_str().unwrap().to_string();
-                let actor = base_object.get("actor").unwrap().as_str().unwrap().to_string();
+                let object = base_object
+                    .get("object")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string();
+                let actor = base_object
+                    .get("actor")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string();
                 println!("UnLike {} from {}", object, actor);
                 server.likes.unlike(&object, &actor);
             } else if obj_type == "Announce" {
-                let object = base_object.get("object").unwrap().as_str().unwrap().to_string();
-                let actor = base_object.get("actor").unwrap().as_str().unwrap().to_string();
+                let object = base_object
+                    .get("object")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string();
+                let actor = base_object
+                    .get("actor")
+                    .unwrap()
+                    .as_str()
+                    .unwrap()
+                    .to_string();
                 println!("UnBoost {} from {}", object, actor);
                 server.likes.unboost(&object, &actor);
             }
@@ -301,14 +336,13 @@ impl Server {
         }
     }
 
-
     /**
      * Returns likes and boost per recipe
      * @param server
      * @param info         object is the url of the recipe and wanted_type (like/boost)
      * @return the array of people who boost/like the recipe
      */
-     pub async fn likes(server: Data<Mutex<Server>>, info: Query<LikesRequest>) -> impl Responder {
+    pub async fn likes(server: Data<Mutex<Server>>, info: Query<LikesRequest>) -> impl Responder {
         let server = server.lock().unwrap();
         HttpResponse::Ok().json(server.likes.data(&info.object, &info.wanted_type))
     }
@@ -326,10 +360,10 @@ impl Server {
         let path = format!("{}/{}", self.config.image_dir, recipe);
         if Path::new(&path).exists() {
             return fs::read_dir(&path)
-                        .unwrap()
-                        .map(|res| res.map(|e| e.path()))
-                        .collect::<Result<Vec<_>, io::Error>>()
-                        .unwrap()
+                .unwrap()
+                .map(|res| res.map(|e| e.path()))
+                .collect::<Result<Vec<_>, io::Error>>()
+                .unwrap();
         }
         Vec::new()
     }
@@ -353,13 +387,21 @@ impl Server {
         fs::create_dir_all(&self.config.output_dir)
     }
 
-    fn write_date_and_article_count_to_cache(&self, first_entry_date: u64, nb_recipes: usize) -> Result<(), io::Error>  {
+    fn write_date_and_article_count_to_cache(
+        &self,
+        first_entry_date: u64,
+        nb_recipes: usize,
+    ) -> Result<(), io::Error> {
         let cache_content = format!("{}\n{}\n", first_entry_date, nb_recipes);
-        fs::write(format!("{}/date_file.txt", self.config.cache_dir), cache_content)
+        fs::write(
+            format!("{}/date_file.txt", self.config.cache_dir),
+            cache_content,
+        )
     }
 
     fn read_date_and_article_count_from_cache(&self) -> Result<(u64, usize), ()> {
-        let contents = match fs::read_to_string(format!("{}/date_file.txt", self.config.cache_dir)) {
+        let contents = match fs::read_to_string(format!("{}/date_file.txt", self.config.cache_dir))
+        {
             Ok(contents) => contents,
             Err(_) => return Err(()),
         };
@@ -387,26 +429,38 @@ impl Server {
         fs::read_to_string(format!("{}/{}.json", self.config.cache_dir, page))
     }
 
-    fn update_cache(&self, sorted_recipes: Vec<(&PathBuf, SystemTime)>, previous_entry_date: u64) -> Vec<Value> {
-        let chunked_recipes: Vec<Vec<_>> = sorted_recipes.chunks(12).map(|chunk| chunk.to_vec()).collect();
+    fn update_cache(
+        &self,
+        sorted_recipes: Vec<(&PathBuf, SystemTime)>,
+        previous_entry_date: u64,
+    ) -> Vec<Value> {
+        let chunked_recipes: Vec<Vec<_>> = sorted_recipes
+            .chunks(12)
+            .map(|chunk| chunk.to_vec())
+            .collect();
         let max_page: usize = chunked_recipes.len();
         let mut idx_page = 0;
         const HEADER_TITLE_REGEX: &str = r#"title: ([^\n]+)\n"#;
         const HEADER_TAGS_REGEX: &str = r#"tags: \[([^\n]+)\]\n"#;
-        let mut to_announce : Vec<Value> = Vec::new();
+        let mut to_announce: Vec<Value> = Vec::new();
         let re_title_regex = Regex::new(HEADER_TITLE_REGEX).unwrap();
         let re_tags_regex = Regex::new(HEADER_TAGS_REGEX).unwrap();
         for chunk in chunked_recipes {
             let mut articles = Vec::new();
             // Parse the markdown files into a collection of `Object`s.
             for markdown_file in chunk.iter() {
-                let filename_without_extension = markdown_file.0.file_stem().unwrap().to_str().unwrap();
+                let filename_without_extension =
+                    markdown_file.0.file_stem().unwrap().to_str().unwrap();
                 let markdown = fs::read_to_string(markdown_file.0).unwrap();
                 let match_title = re_title_regex.captures(&markdown).unwrap();
                 let datetime: DateTime<Utc> = markdown_file.1.into();
                 let published = datetime.format("%+").to_string();
-                let entry_date = markdown_file.1.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-                let mut attachments : Vec<Value> = Vec::new();
+                let entry_date = markdown_file
+                    .1
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap()
+                    .as_secs();
+                let mut attachments: Vec<Value> = Vec::new();
                 for image in self.get_images(filename_without_extension.to_string()) {
                     attachments.push(json!({
                         "type": "Image",
@@ -414,13 +468,13 @@ impl Server {
                         "url": format!("https://{}/{}{}/{}", self.config.domain, self.config.static_image_dir, filename_without_extension, image.file_name().unwrap().to_str().unwrap()),
                     }));
                 }
-                let mut tags_value : Vec<Value> = Vec::new();
+                let mut tags_value: Vec<Value> = Vec::new();
                 let mut tags = self.config.tags.clone();
                 if tags.len() == 0 {
                     let tags_article = re_tags_regex.captures(&markdown).unwrap();
                     let tags_article = tags_article.get(1).map_or("", |m| m.as_str()).to_owned();
                     let tags_article: Vec<&str> = tags_article.split(',').collect();
-                    tags = tags_article.iter().map(|&s|s.into()).collect();
+                    tags = tags_article.iter().map(|&s| s.into()).collect();
                 }
                 for tag in tags {
                     let mut tag = String::from(tag);
@@ -512,17 +566,28 @@ impl Server {
                 "items": articles
             });
             if idx_page > 1 {
-                outbox_json["prev"] = serde_json::Value::String(format!("https://{}/users/{}/outbox?page={}", self.config.domain, self.config.user, idx_page - 1));
+                outbox_json["prev"] = serde_json::Value::String(format!(
+                    "https://{}/users/{}/outbox?page={}",
+                    self.config.domain,
+                    self.config.user,
+                    idx_page - 1
+                ));
             }
             if idx_page < max_page {
-                outbox_json["next"] = serde_json::Value::String(format!("https://{}/users/{}/outbox?page={}", self.config.domain, self.config.user, idx_page + 1));
+                outbox_json["next"] = serde_json::Value::String(format!(
+                    "https://{}/users/{}/outbox?page={}",
+                    self.config.domain,
+                    self.config.user,
+                    idx_page + 1
+                ));
             }
 
             // Cache file
             std::fs::write(
                 format!("{}/{}.json", &self.config.cache_dir, idx_page + 1),
                 serde_json::to_string_pretty(&outbox_json).unwrap(),
-            ).unwrap();
+            )
+            .unwrap();
             idx_page += 1;
         }
         to_announce
@@ -533,14 +598,21 @@ impl Server {
      */
     async fn get_inbox(actor: &String) -> Result<String, reqwest::Error> {
         let client = reqwest::Client::new();
-        let body = client.get(actor).header(reqwest::header::ACCEPT, "application/activity+json")
-            .send().await.unwrap().text().await.unwrap();
+        let body = client
+            .get(actor)
+            .header(reqwest::header::ACCEPT, "application/activity+json")
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap();
         let object: Value = serde_json::from_str(&body).unwrap();
         let inbox = object["endpoints"].as_object();
         if inbox.is_some() {
             let inbox = inbox.unwrap()["sharedInbox"].as_str();
             if inbox.is_some() {
-                return Ok(inbox.unwrap().to_owned())
+                return Ok(inbox.unwrap().to_owned());
             }
         }
         Ok(object["inbox"].as_str().unwrap().to_owned())
@@ -562,7 +634,10 @@ impl Server {
             // For each article, post to inboxes
             for inbox in &inboxes {
                 println!("Announce {} to {}", article["id"].as_str().unwrap(), inbox);
-                self.followers.post_inbox(&inbox, article.clone()).await.unwrap();
+                self.followers
+                    .post_inbox(&inbox, article.clone())
+                    .await
+                    .unwrap();
             }
         }
     }
