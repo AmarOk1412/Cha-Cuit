@@ -15,6 +15,8 @@ an ActivityPub server (located in `/chactivity`).
 
 Then, you will need NGINX and `certbot` (or any other application that can generated certificates for your website).
 
+Finally, for the Blist theme, you will need postcss (`npm install postcss-cli`).
+
 ### Configuring the instance
 
 For the backend cf [chactivityserver](/chactivityserver/README.md).

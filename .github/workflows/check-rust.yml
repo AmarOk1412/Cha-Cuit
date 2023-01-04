@@ -1,0 +1,29 @@
+name: Check Rust
+
+on:
+  push:
+    paths-ignore:
+      - 'assets'
+      - '*.md'
+      - 'content'
+      - 'layouts'
+      - 'static'
+
+jobs:
+  build_and_test:
+    name: Rust project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          args: --manifest-path chactivityserver/Cargo.toml
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --all-features --manifest-path chactivityserver/Cargo.toml
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path chactivityserver/Cargo.toml
