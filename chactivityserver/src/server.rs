@@ -186,6 +186,16 @@ impl Server {
     }
 
     /**
+     * Returns the list of following
+     * @param server
+     * @return json containing a collection of following
+     */
+    pub async fn user_following(server: Data<Mutex<Server>>) -> impl Responder {
+        let server = server.lock().unwrap();
+        server.followers.user_following()
+    }
+
+    /**
      * Handle Outbox requests if page == 0
      * @param page
      */
@@ -261,14 +271,24 @@ impl Server {
 
         if base_obj.object_type == "Follow" {
             let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
-            if follow_obj.object != "https://cha-cu.it/users/chef" {
+            if follow_obj.object != format!("https://{}/users/{}", server.config.domain, server.config.user) {
                 println!("Unknown object: {}", follow_obj.object);
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
-                let inbox = Server::get_inbox(&follow_obj.actor)
+                let inbox = Server::get_inbox(&follow_obj.actor, false)
                     .await
                     .unwrap_or(String::new());
-                server.followers.accept(follow_obj, inbox).await;
+                    server.followers.accept(&follow_obj, &inbox).await;
+                if server.config.auto_follow_back {
+                    server.followers.send_follow(&follow_obj.actor, &inbox).await;
+                }
+            }
+            return String::from("{}");
+        } else if base_obj.object_type == "Accept" {
+            let object : Value = serde_json::from_str(&body).unwrap();
+            if object.get("object").unwrap().get("type").unwrap().as_str().unwrap() == "Follow" {
+                let follow_obj: FollowObject = serde_json::from_value(object.get("object").unwrap().clone()).unwrap();
+                server.followers.follow_accepted(&follow_obj.object).await;
             }
             return String::from("{}");
         } else if base_obj.object_type == "Like" {
@@ -596,7 +616,7 @@ impl Server {
     /**
      * Get inbox from fediverse actor
      */
-    async fn get_inbox(actor: &String) -> Result<String, reqwest::Error> {
+    async fn get_inbox(actor: &String, prefer_shared: bool) -> Result<String, reqwest::Error> {
         let client = reqwest::Client::new();
         let body = client
             .get(actor)
@@ -608,11 +628,13 @@ impl Server {
             .await
             .unwrap();
         let object: Value = serde_json::from_str(&body).unwrap();
-        let inbox = object["endpoints"].as_object();
-        if inbox.is_some() {
-            let inbox = inbox.unwrap()["sharedInbox"].as_str();
+        if prefer_shared {
+            let inbox = object["endpoints"].as_object();
             if inbox.is_some() {
-                return Ok(inbox.unwrap().to_owned());
+                let inbox = inbox.unwrap()["sharedInbox"].as_str();
+                if inbox.is_some() {
+                    return Ok(inbox.unwrap().to_owned());
+                }
             }
         }
         Ok(object["inbox"].as_str().unwrap().to_owned())
@@ -627,7 +649,7 @@ impl Server {
         let followers = self.followers.followers();
         let mut inboxes = HashSet::new();
         for follower in followers {
-            inboxes.insert(Server::get_inbox(&follower).await.unwrap());
+            inboxes.insert(Server::get_inbox(&follower, true).await.unwrap());
         }
         // Get inbox from followers
         for article in &to_annnounce {

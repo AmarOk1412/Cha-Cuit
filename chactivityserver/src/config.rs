@@ -45,4 +45,5 @@ pub struct Config {
     pub license: String,
     pub public_key: String,
     pub tags: Vec<String>,
+    pub auto_follow_back: bool,
 }

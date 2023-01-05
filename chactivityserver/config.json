@@ -17,5 +17,6 @@
     "manually_approve_followers": false,
     "discoverable": true,
     "license": "CC-0",
-    "tags": ["cuisine", "recette", "mastocats"]
+    "tags": ["cuisine", "recette", "mastocats"],
+    "auto_follow_back": true
 }

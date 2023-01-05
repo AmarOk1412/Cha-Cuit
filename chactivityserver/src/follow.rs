@@ -27,6 +27,7 @@ use crate::server::FollowObject;
 
 use actix_web::{HttpResponse, Responder};
 use http_sig::*;
+use rand::{distributions::Alphanumeric, Rng};
 use serde_json::json;
 use serde_json::Value;
 use std::fs;
@@ -38,9 +39,49 @@ use std::path::Path;
 #[derive(Debug, Clone)]
 pub struct Followers {
     pub config: Config,
+    pub following: Vec<String>,
+    pub pending_following: Vec<String>,
 }
 
 impl Followers {
+    /**
+     * This structure is used to store followers and following objects
+     * Data is serialized in .cache/following.json, .cache/pending_following.json
+     */
+    pub fn new(config: Config) -> Followers {
+        let mut following = Vec::new();
+        let mut pending_following = Vec::new();
+        let path = format!("{}/following.json", config.cache_dir);
+        if Path::new(&path).exists() {
+            following = serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+        }
+        let path = format!("{}/pending_following.json", config.cache_dir);
+        if Path::new(&path).exists() {
+            pending_following = serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+        }
+
+        Followers { config, following, pending_following }
+    }
+
+    /**
+     * This object stores a list of users followed
+     * @param self
+     */
+    pub fn user_following(&self) -> impl Responder {
+        let following_json = json!({
+            "@context": [
+              "https://www.w3.org/ns/activitystreams",
+              "https://w3id.org/security/v1",
+              Followers::mastodon_value()
+            ],
+            "id": format!("https://{}/users/{}/following", self.config.domain, self.config.user),
+            "items": self.following,
+            "totalItems": self.following.len(),
+            "type": "OrderedCollection"
+        });
+        HttpResponse::Ok().json(following_json)
+    }
+
     /**
      * This object stores a list of followers of the instance
      * @param self
@@ -106,14 +147,14 @@ impl Followers {
      * @param follow_object
      * @param actor_inbox
      */
-    pub async fn accept(&self, follow_obj: FollowObject, actor_inbox: String) {
+    pub async fn accept(&self, follow_obj: &FollowObject, actor_inbox: &String) {
         let mut f = self.followers();
         f.retain(|x| x != &*follow_obj.actor);
         f.push(follow_obj.actor.clone());
         self.write_followers(&f);
         // Send accept to inbox of the actor
         self.post_inbox(
-            &actor_inbox,
+            actor_inbox,
             json!({
                 "@context": "https://www.w3.org/ns/activitystreams",
                 "id": format!("https://{}/users/{}", self.config.domain, self.config.user),
@@ -181,5 +222,85 @@ impl Followers {
         let result = client.execute(req).await?.text().await?;
         println!("=>{}", result);
         Ok(())
+    }
+
+    /**
+     * @return if we follow somebody
+     */
+    pub fn is_following(&self, actor: &String) -> bool {
+        self.following.contains(actor) || self.pending_following.contains(actor)
+    }
+
+    /**
+     * Send a Follow Request to an actor, and add it to the pending_following list
+     * @param self
+     * @param actor
+     * @param actor_inbox
+     */
+    pub async fn send_follow(&mut self, actor: &String, actor_inbox: &String) {
+        if !self.is_following(actor) {
+            let random_string: String = rand::thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(32)
+                .map(char::from)
+                .collect();
+
+            let follow_obj = json!({
+                "@context":"https://www.w3.org/ns/activitystreams",
+                "type":"Follow",
+                "actor": format!("https://{}/users/{}", self.config.domain, self.config.user),
+                "object": actor,
+                "id": format!("https://{}/{}", self.config.domain, random_string),
+            });
+            println!("Send Follow Activity to {}", actor);
+            // Send Follow to inbox of the actor
+            self.post_inbox(
+                actor_inbox,
+                follow_obj,
+            )
+            .await
+            .unwrap();
+            self.pending_following.push(actor.to_string());
+            self.update_pending_following();
+        }
+    }
+
+    /**
+     * Move an object to the confirmed following list
+     * @param self
+     * @param object
+     */
+    pub async fn follow_accepted(&mut self, object: &String) {
+        if self.pending_following.contains(object) {
+            self.pending_following.retain(|x| x != &*object);
+            self.following.push(object.to_string());
+            self.update_pending_following();
+            self.update_following();
+            println!("Now following {}", object);
+        } else {
+            println!("Follow accepted, but pending not found: {}", object);
+        }
+    }
+
+    /**
+     * Write self.following in following.json
+     */
+    fn update_following(&self) {
+        std::fs::write(
+            format!("{}/following.json", &self.config.cache_dir),
+            serde_json::to_string_pretty(&self.following).unwrap(),
+        )
+        .unwrap();
+    }
+
+    /**
+     * Write self.following in pending_following.json
+     */
+    fn update_pending_following(&self) {
+        std::fs::write(
+            format!("{}/pending_following.json", &self.config.cache_dir),
+            serde_json::to_string_pretty(&self.pending_following).unwrap(),
+        )
+        .unwrap();
     }
 }

@@ -58,9 +58,7 @@ fn main() {
 async fn run_server() {
     let config_str = fs::read_to_string("config.json");
     let config = serde_json::from_str::<Config>(&config_str.unwrap()).unwrap();
-    let followers = Followers {
-        config: config.clone(),
-    };
+    let followers = Followers::new(config.clone());
     let profile = Profile {
         config: config.clone(),
     };
@@ -81,6 +79,10 @@ async fn run_server() {
             .route(
                 "/users/chef/followers",
                 web::get().to(Server::user_followers),
+            )
+            .route(
+                "/users/chef/following",
+                web::get().to(Server::user_following),
             )
             .route("/users/chef/likes", web::get().to(Server::likes))
     })
