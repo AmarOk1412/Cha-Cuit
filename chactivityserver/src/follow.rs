@@ -283,6 +283,71 @@ impl Followers {
     }
 
     /**
+     * Get inbox from fediverse actor
+     */
+    pub async fn get_inbox(actor: &String, prefer_shared: bool) -> Result<String, reqwest::Error> {
+        let client = reqwest::Client::new();
+        let body = client
+            .get(actor)
+            .header(reqwest::header::ACCEPT, "application/activity+json")
+            .send()
+            .await?
+            .text()
+            .await?;
+        let object: Value = serde_json::from_str(&body).unwrap();
+        if prefer_shared {
+            let inbox = object["endpoints"].as_object();
+            if inbox.is_some() {
+                let inbox = inbox.unwrap()["sharedInbox"].as_str();
+                if inbox.is_some() {
+                    return Ok(inbox.unwrap().to_owned());
+                }
+            }
+        }
+        Ok(object["inbox"].as_str().unwrap().to_owned())
+    }
+
+    /**
+     * Follow new instances or manually added contacts from the config files
+     * @param self
+     */
+    pub async fn update_cache(&mut self) {
+        // Read from instances.txt
+        // If not in followers, send_follow
+        if Path::new(&self.config.instances_list).exists() {
+            let file = File::open(&*self.config.instances_list).unwrap();
+            let reader = BufReader::new(file);
+            for actor in reader.lines() {
+                let actor = actor.unwrap();
+                if !self.is_following(&actor) && !actor.contains(&self.config.domain) {
+                    println!("New instance detected: {}", actor);
+                    let inbox = Followers::get_inbox(&actor, false).await.unwrap_or(String::new());
+                    if !inbox.is_empty() {
+                        self.send_follow(&actor, &inbox).await;
+                    }
+                }
+            }
+        }
+
+        // Read from manual
+        if Path::new(&self.config.instances_list).exists() {
+            let file = File::open(&*self.config.manual_follow_list).unwrap();
+            let reader = BufReader::new(file);
+            for actor in reader.lines() {
+                let actor = actor.unwrap();
+                if !self.is_following(&actor) && !actor.contains(&self.config.domain)  {
+                    println!("Manual follow: {}", actor);
+                    let inbox = Followers::get_inbox(&actor, false).await.unwrap_or(String::new());
+                    if !inbox.is_empty() {
+                        self.send_follow(&actor, &inbox).await;
+                    }
+                }
+            }
+            let _ = fs::remove_file(&*self.config.manual_follow_list);
+        }
+    }
+
+    /**
      * Write self.following in following.json
      */
     fn update_following(&self) {

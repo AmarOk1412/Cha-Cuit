@@ -167,7 +167,7 @@ impl Server {
      * @return Outbox' json
      */
     pub async fn outbox(server: Data<Mutex<Server>>, info: Query<OutboxParams>) -> impl Responder {
-        let server = server.lock().unwrap();
+        let mut server = server.lock().unwrap();
         let page: usize = info.page.unwrap_or(0) as usize;
         if page == 0 {
             return server.outbox_page_0();
@@ -218,7 +218,7 @@ impl Server {
      * Handle Outbox requests if page > 0
      * @param page
      */
-    async fn outbox_page(&self, page: usize) -> HttpResponse {
+    async fn outbox_page(&mut self, page: usize) -> HttpResponse {
         self.check_cache().await;
 
         // Read the cache for the requested page
@@ -232,7 +232,7 @@ impl Server {
      * Because we use a static website, update the cache to announce articles ASAP
      * @param self
      */
-    async fn check_cache(&self) {
+    async fn check_cache(&mut self) {
         // Get the list of recipe paths
         let recipes = self.get_recipe_paths();
 
@@ -251,7 +251,7 @@ impl Server {
         let first_entry_date = Server::get_first_entry_date(&sorted_recipes);
         if first_entry_date > file_date || file_nb_articles != recipes.len() {
             println!("Refreshing cache.");
-            let to_announce = self.update_cache(sorted_recipes, file_date);
+            let to_announce = self.update_cache(sorted_recipes, file_date).await;
             let _ = self.write_date_and_article_count_to_cache(first_entry_date, recipes.len());
             self.announce_articles(to_announce).await;
         }
@@ -275,7 +275,7 @@ impl Server {
                 println!("Unknown object: {}", follow_obj.object);
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
-                let inbox = Server::get_inbox(&follow_obj.actor, false)
+                let inbox = Followers::get_inbox(&follow_obj.actor, false)
                     .await
                     .unwrap_or(String::new());
                     server.followers.accept(&follow_obj, &inbox).await;
@@ -449,11 +449,12 @@ impl Server {
         fs::read_to_string(format!("{}/{}.json", self.config.cache_dir, page))
     }
 
-    fn update_cache(
-        &self,
+    async fn update_cache(
+        &mut self,
         sorted_recipes: Vec<(&PathBuf, SystemTime)>,
         previous_entry_date: u64,
     ) -> Vec<Value> {
+        self.followers.update_cache().await;
         let chunked_recipes: Vec<Vec<_>> = sorted_recipes
             .chunks(12)
             .map(|chunk| chunk.to_vec())
@@ -614,33 +615,6 @@ impl Server {
     }
 
     /**
-     * Get inbox from fediverse actor
-     */
-    async fn get_inbox(actor: &String, prefer_shared: bool) -> Result<String, reqwest::Error> {
-        let client = reqwest::Client::new();
-        let body = client
-            .get(actor)
-            .header(reqwest::header::ACCEPT, "application/activity+json")
-            .send()
-            .await
-            .unwrap()
-            .text()
-            .await
-            .unwrap();
-        let object: Value = serde_json::from_str(&body).unwrap();
-        if prefer_shared {
-            let inbox = object["endpoints"].as_object();
-            if inbox.is_some() {
-                let inbox = inbox.unwrap()["sharedInbox"].as_str();
-                if inbox.is_some() {
-                    return Ok(inbox.unwrap().to_owned());
-                }
-            }
-        }
-        Ok(object["inbox"].as_str().unwrap().to_owned())
-    }
-
-    /**
      * Announce new articles to followers
      * @param self
      * @param to_announce   Articles to announce
@@ -649,7 +623,7 @@ impl Server {
         let followers = self.followers.followers();
         let mut inboxes = HashSet::new();
         for follower in followers {
-            inboxes.insert(Server::get_inbox(&follower, true).await.unwrap());
+            inboxes.insert(Followers::get_inbox(&follower, true).await.unwrap());
         }
         // Get inbox from followers
         for article in &to_annnounce {

@@ -18,5 +18,7 @@
     "discoverable": true,
     "license": "CC-0",
     "tags": ["cuisine", "recette", "mastocats"],
-    "auto_follow_back": true
+    "auto_follow_back": true,
+    "instances_list": "../instances.txt",
+    "manual_follow_list": "../manual_follow.txt"
 }

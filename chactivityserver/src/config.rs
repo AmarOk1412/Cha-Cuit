@@ -46,4 +46,6 @@ pub struct Config {
     pub public_key: String,
     pub tags: Vec<String>,
     pub auto_follow_back: bool,
+    pub instances_list: String,
+    pub manual_follow_list: String,
 }
