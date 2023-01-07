@@ -50,3 +50,6 @@ replier, tourner d'un quart de tour, recommencer et laisser reposer
 # Notes
 
 + Ajouter ⅓ voir ½ des proportions pour avoir assez de pâte pour le [mille-feuilles](/recettes/mille-feuilles)
+ou pour la [galette des rois](/recettes/galette-poire-chocolat)
+
++ Prix évalué (~3.2$CAD)

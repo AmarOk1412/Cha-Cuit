@@ -330,7 +330,7 @@ impl Followers {
         }
 
         // Read from manual
-        if Path::new(&self.config.instances_list).exists() {
+        if Path::new(&self.config.manual_follow_list).exists() {
             let file = File::open(&*self.config.manual_follow_list).unwrap();
             let reader = BufReader::new(file);
             for actor in reader.lines() {
