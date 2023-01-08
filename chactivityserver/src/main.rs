@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, Sébastien Blin <sebastien.blin@enconn.fr>
+ *  Copyright (c) 2022-2023, Sébastien Blin <sebastien.blin@enconn.fr>
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -22,15 +22,19 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
+mod articleparser;
 mod config;
 mod follow;
 mod likes;
+mod noteparser;
 mod profile;
 mod server;
 
+use crate::articleparser::ArticleParser;
 use crate::config::Config;
 use crate::follow::Followers;
 use crate::likes::Likes;
+use crate::noteparser::NoteParser;
 use crate::profile::Profile;
 use crate::server::Server;
 
@@ -63,11 +67,15 @@ async fn run_server() {
         config: config.clone(),
     };
     let likes = Likes::new(config.clone());
+    let note_parser = NoteParser::new(config.clone());
+    let article_parser = ArticleParser::new(config.clone());
     let server = Data::new(Mutex::new(Server {
         config: config.clone(),
         followers,
         profile,
         likes,
+        note_parser,
+        article_parser,
     }));
     HttpServer::new(move || {
         App::new()

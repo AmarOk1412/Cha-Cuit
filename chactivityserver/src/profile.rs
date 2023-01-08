@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, Sébastien Blin <sebastien.blin@enconn.fr>
+ *  Copyright (c) 2022-2023, Sébastien Blin <sebastien.blin@enconn.fr>
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:

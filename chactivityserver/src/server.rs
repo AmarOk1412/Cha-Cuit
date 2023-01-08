@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, Sébastien Blin <sebastien.blin@enconn.fr>
+ *  Copyright (c) 2022-2023, Sébastien Blin <sebastien.blin@enconn.fr>
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -22,9 +22,11 @@
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
+use crate::articleparser::ArticleParser;
 use crate::config::Config;
 use crate::follow::Followers;
 use crate::likes::Likes;
+use crate::noteparser::NoteParser;
 use crate::profile::Profile;
 
 use actix_web::{
@@ -101,6 +103,8 @@ pub struct Server {
     pub followers: Followers,
     pub profile: Profile,
     pub likes: Likes,
+    pub note_parser: NoteParser,
+    pub article_parser: ArticleParser,
 }
 
 impl Server {
@@ -271,23 +275,40 @@ impl Server {
 
         if base_obj.object_type == "Follow" {
             let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
-            if follow_obj.object != format!("https://{}/users/{}", server.config.domain, server.config.user) {
+            if follow_obj.object
+                != format!(
+                    "https://{}/users/{}",
+                    server.config.domain, server.config.user
+                )
+            {
                 println!("Unknown object: {}", follow_obj.object);
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
                 let inbox = Followers::get_inbox(&follow_obj.actor, false)
                     .await
                     .unwrap_or(String::new());
-                    server.followers.accept(&follow_obj, &inbox).await;
+                server.followers.accept(&follow_obj, &inbox).await;
                 if server.config.auto_follow_back {
-                    server.followers.send_follow(&follow_obj.actor, &inbox).await;
+                    server
+                        .followers
+                        .send_follow(&follow_obj.actor, &inbox)
+                        .await;
                 }
             }
             return String::from("{}");
         } else if base_obj.object_type == "Accept" {
-            let object : Value = serde_json::from_str(&body).unwrap();
-            if object.get("object").unwrap().get("type").unwrap().as_str().unwrap() == "Follow" {
-                let follow_obj: FollowObject = serde_json::from_value(object.get("object").unwrap().clone()).unwrap();
+            let object: Value = serde_json::from_str(&body).unwrap();
+            if object
+                .get("object")
+                .unwrap()
+                .get("type")
+                .unwrap()
+                .as_str()
+                .unwrap()
+                == "Follow"
+            {
+                let follow_obj: FollowObject =
+                    serde_json::from_value(object.get("object").unwrap().clone()).unwrap();
                 server.followers.follow_accepted(&follow_obj.object).await;
             }
             return String::from("{}");
@@ -301,6 +322,36 @@ impl Server {
             server
                 .likes
                 .boost(&announce_obj.object, &announce_obj.actor);
+        } else if base_obj.object_type == "Create" {
+            let base_obj: Value = serde_json::from_str(&body).unwrap();
+            let actor = base_obj
+                .get("actor")
+                .unwrap()
+                .as_str()
+                .unwrap_or("")
+                .to_owned();
+            let base_obj: Value = base_obj.get("object").unwrap().to_owned();
+            let obj_type = base_obj.get("type").unwrap().as_str().unwrap_or("");
+            if obj_type == "Note" {
+                // Check that we follow author
+                if server.followers.is_following(&actor) {
+                    let best_name = Followers::get_best_name(&actor)
+                        .await
+                        .unwrap_or(String::new());
+                    server.note_parser.parse(base_obj, best_name);
+                }
+            } else if obj_type == "Article" {
+                // Check that we follow author
+                if server.followers.is_following(&actor) {
+                    server.article_parser.parse(
+                        base_obj,
+                        Followers::get_best_name(&actor)
+                            .await
+                            .unwrap_or(String::new()),
+                    );
+                }
+            }
+            return String::from("{}");
         }
 
         let request: Value = serde_json::from_str(&body).unwrap();

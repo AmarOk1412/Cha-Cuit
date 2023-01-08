@@ -10,7 +10,7 @@
     "public_key": ".keys/pubkey.pem",
     "description": "Un site de recettes cha-tisfaisantes ! Cha-cuit! est un petit site de partage de recettes en tout genre. Les recettes sont en grande partie réalisées avec l'aide de Kælinn.",
     "cache_dir": ".cache",
-    "output_dir": "chadiverse",
+    "output_dir": "../content/chadiverse",
     "input_dir": "../content/recettes",
     "image_dir": "../static/img/",
     "static_image_dir": "img/",

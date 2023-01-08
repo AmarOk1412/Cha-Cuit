@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, Sébastien Blin <sebastien.blin@enconn.fr>
+ *  Copyright (c) 2022-2023, Sébastien Blin <sebastien.blin@enconn.fr>
  *
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted provided that the following conditions are met:
@@ -53,14 +53,20 @@ impl Followers {
         let mut pending_following = Vec::new();
         let path = format!("{}/following.json", config.cache_dir);
         if Path::new(&path).exists() {
-            following = serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+            following =
+                serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
         }
         let path = format!("{}/pending_following.json", config.cache_dir);
         if Path::new(&path).exists() {
-            pending_following = serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+            pending_following =
+                serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
         }
 
-        Followers { config, following, pending_following }
+        Followers {
+            config,
+            following,
+            pending_following,
+        }
     }
 
     /**
@@ -254,12 +260,7 @@ impl Followers {
             });
             println!("Send Follow Activity to {}", actor);
             // Send Follow to inbox of the actor
-            self.post_inbox(
-                actor_inbox,
-                follow_obj,
-            )
-            .await
-            .unwrap();
+            self.post_inbox(actor_inbox, follow_obj).await.unwrap();
             self.pending_following.push(actor.to_string());
             self.update_pending_following();
         }
@@ -308,6 +309,22 @@ impl Followers {
     }
 
     /**
+     * Get best name from fediverse actor
+     */
+    pub async fn get_best_name(actor: &String) -> Result<String, reqwest::Error> {
+        let client = reqwest::Client::new();
+        let body = client
+            .get(actor)
+            .header(reqwest::header::ACCEPT, "application/activity+json")
+            .send()
+            .await?
+            .text()
+            .await?;
+        let object: Value = serde_json::from_str(&body).unwrap();
+        Ok(object["name"].as_str().unwrap().to_owned())
+    }
+
+    /**
      * Follow new instances or manually added contacts from the config files
      * @param self
      */
@@ -321,7 +338,9 @@ impl Followers {
                 let actor = actor.unwrap();
                 if !self.is_following(&actor) && !actor.contains(&self.config.domain) {
                     println!("New instance detected: {}", actor);
-                    let inbox = Followers::get_inbox(&actor, false).await.unwrap_or(String::new());
+                    let inbox = Followers::get_inbox(&actor, false)
+                        .await
+                        .unwrap_or(String::new());
                     if !inbox.is_empty() {
                         self.send_follow(&actor, &inbox).await;
                     }
@@ -335,9 +354,11 @@ impl Followers {
             let reader = BufReader::new(file);
             for actor in reader.lines() {
                 let actor = actor.unwrap();
-                if !self.is_following(&actor) && !actor.contains(&self.config.domain)  {
+                if !self.is_following(&actor) && !actor.contains(&self.config.domain) {
                     println!("Manual follow: {}", actor);
-                    let inbox = Followers::get_inbox(&actor, false).await.unwrap_or(String::new());
+                    let inbox = Followers::get_inbox(&actor, false)
+                        .await
+                        .unwrap_or(String::new());
                     if !inbox.is_empty() {
                         self.send_follow(&actor, &inbox).await;
                     }
