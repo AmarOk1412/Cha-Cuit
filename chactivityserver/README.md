@@ -196,12 +196,48 @@ This is shown in the website via a `fetch()` request done in `layouts/_default/s
 
 ## Receiving articles
 
-Not implemented yet!
+### From other instances
+
+It will be incoming articles automatically received when they will update their cache.
+The content will appear when `hugo` will be executed. For the format, cf `Posting on the Fediverse`.
+
+### From Mastodon
+
+It's possible to convert toots to articles in cha-cuit. Toots are `Note` objects in the ActivityPub protocol.
+The following format will be used:
+
+```
+---
+title: Note["summary"]
+date: SystemTime.now
+tags: [Note["tags"]]
+author: Note["actor"]
+thumbnail: (Optional)Note["attachment"][0]
+---
+
+Note["content"]
+
+(Optional) Gallery of Notes["attachment"]
+
+Note["id"]
+```
+
+So, a CW will be used as a title, the gallery will be up to 4 images and #chacuit must be specified.
+
+e.g.:
+
+![Mastodon](img/inbox-mastodon.jpg)
+
+![Cha-Cuit](img/inbox-chacuit.jpg)
+
+### Signature verification
+
+**TODO**
 
 ### Following instances
 
-There is 3 way to get incoming articles from the Fediverse:
+There is 2 ways to get incoming articles from the Fediverse:
 
-1. Following users. (TODO)
-2. Following other instances (TODO)
-3. Following relays (TODO)
+1. Following users. This is configurable via `config.json` (`auto_follow_back` and `manual_follow_list` which can contains
+actors that will be automatically followed during cache invalidation)
+2. Following other instances via `instances.txt`.
