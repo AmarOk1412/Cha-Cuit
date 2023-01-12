@@ -31,15 +31,17 @@ use crate::profile::Profile;
 
 use actix_web::{
     web::{Bytes, Data, Query},
-    HttpResponse, Responder,
+    HttpRequest, HttpResponse, Responder,
 };
-use chrono::offset::Utc;
-use chrono::DateTime;
+use base64::{Engine as _, engine::general_purpose};
+use http_sig::{RsaSha256Verify, HttpSignatureVerify};
+use chrono::{DateTime, offset::Utc};
 use regex::Regex;
+use openssl::sha::Sha256;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
@@ -262,13 +264,150 @@ impl Server {
     }
 
     /**
+     * Get public key from a key-id
+     */
+    async fn get_public_key(key_id: &String) -> Result<String, reqwest::Error> {
+        let client = reqwest::Client::new();
+        let body = client
+            .get(key_id)
+            .header(reqwest::header::ACCEPT, "application/activity+json")
+            .send()
+            .await?
+            .text()
+            .await?;
+        let obj = serde_json::from_str(&body);
+        if !obj.is_ok() {
+            return Ok(String::new());
+        }
+        let object: Value = obj.unwrap();
+        let pk = object.get("publicKey");
+        if pk.is_none() {
+            return Ok(String::new());
+        }
+        let pk = pk.unwrap().get("publicKeyPem");
+        if pk.is_none() {
+            return Ok(String::new());
+        }
+        Ok(pk.unwrap().as_str().unwrap().to_owned())
+    }
+
+    async fn verify(&self, req: HttpRequest, body: &Bytes) -> bool {
+        // First, check that the request is less than twelve hours old
+        let date = req.headers().get("date");
+        if date.is_none() {
+            return false;
+        }
+        let date = date.unwrap().to_str().ok().unwrap();
+        let date : DateTime<Utc> = DateTime::parse_from_rfc2822(date).unwrap().into();
+        let now = Utc::now();
+        let diff = now - date;
+        if diff.num_hours() > 12 {
+            return false;
+        }
+
+        // Verify http signature
+        let signature = req.headers().get("signature");
+        if signature.is_some() {
+            let sign_header = signature.unwrap().to_str().ok().unwrap();
+            // Parse the auth params
+            let auth_args = sign_header
+                .split(',')
+                .map(|part: &str| {
+                    let mut kv = part.splitn(2, '=');
+                    let k = kv.next()?.trim();
+                    let v = kv.next()?.trim().trim_matches('"');
+                    Some((k, v))
+                })
+                .collect::<Option<BTreeMap<_, _>>>()
+                .or_else(|| {
+                    println!("Verification Failed: Unable to parse 'Signature' header");
+                    None
+                })
+                .unwrap();
+            let key_id = *auth_args
+                .get("keyId")
+                .or_else(|| {
+                    // TODO better logger
+                    println!("Verification Failed: Missing required 'keyId' in 'Authorization' header");
+                    None
+                })
+                .unwrap();
+            let provided_signature = auth_args
+                .get("signature")
+                .or_else(|| {
+                    //info!("Verification Failed: Missing required 'signature' in 'Authorization' header");
+                    None
+                })
+                .unwrap();
+            let algorithm_name = auth_args.get("algorithm").copied().unwrap();
+            if algorithm_name != "rsa-sha256" && algorithm_name != "hs2019" {
+                println!("Verification Failed: Invalid algorithm {}", algorithm_name);
+                return false;
+            }
+            let digest_header = req.headers().get("digest").unwrap().to_str().ok().unwrap();
+            let digest_header = &digest_header[(digest_header.find('=').unwrap_or(0) + 1)..];
+            let headers: Vec<String> = auth_args
+                .get("headers")
+                .unwrap()
+                .split(' ')
+                .map(|h| h.to_owned())
+                .collect();
+            let mut to_sign = Vec::new();
+            for header in headers.iter() {
+                if header == "(request-target)" {
+                    // TODO (creates)/(verification)
+                    to_sign.push(format!("(request-target): post {}", req.path()));
+                } else {
+                    to_sign.push(format!(
+                        "{}: {}",
+                        header,
+                        req.headers().get(header).unwrap().to_str().ok().unwrap()
+                    ));
+                }
+            }
+
+            // Retrieve key
+            let pk = Server::get_public_key(&key_id.to_owned())
+                .await
+                .unwrap_or(String::new());
+            if pk == "" {
+                return false;
+            }
+            // TODO cache with expiration
+            // TODO crash proof
+
+            // Verify digest
+            let mut sha256 = Sha256::new();
+            sha256.update(body);
+            let hash = sha256.finish();
+            let digest: String = general_purpose::STANDARD_NO_PAD.encode(hash);
+            if digest == digest_header {
+                println!("Invalid Digest from {}", key_id);
+                return false;
+            }
+
+            let verificator = RsaSha256Verify::new_pem(pk.as_bytes()).unwrap();
+            let res = verificator.http_verify(to_sign.join("\n").as_bytes(), &*provided_signature);
+            if !res {
+                println!("Invalid Signature from {}", key_id);
+            }
+            return res;
+        }
+        println!("No signature header");
+        false
+    }
+
+    /**
      * User's inbox. This will receive all object from the fediverse (articles/messages/follow requests/likes)
      * For now, only follow requests are supported
      * @todo receive articles
      * @todo check signatures
      */
-    pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes) -> String {
+    pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes, req: HttpRequest) -> String {
         let mut server = server.lock().unwrap();
+        if !server.verify(req, &bytes).await {
+            return String::from("");
+        }
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
         server.check_cache().await;
