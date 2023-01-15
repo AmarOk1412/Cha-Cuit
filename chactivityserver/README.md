@@ -232,7 +232,32 @@ e.g.:
 
 ### Signature verification
 
-**TODO**
+Every incoming POST request in the inbox MUST include a signature.
+
+The mechanism is fully documented [there](https://datatracker.ietf.org/doc/html/draft-cavage-http-signatures-12) and the code
+uses a fork of https://github.com/PassFort/http-signatures/pull/18.
+Some other steps are also documented [here](https://docs.joinmastodon.org/spec/security/#http-verify).
+
+Basically, 3 steps are done:
+
+1. The `Digest` header is verified: base64(sha256(body)).
+2. The `Date` should be from a request less than 12 hours old.
+3. The `Signature` header is verified:
+
+e.g. `Signature: keyId="https://my-example.com/actor#main-key",headers="(request-target) host date digest",signature="Y2FiYW...IxNGRiZDk4ZA=="`
+
+`keyId` will be fetched and we will retrieve `result['publicKey']['publicKeyPem']`.
+Then we will build the string to verify (e.g. *signedString*):
+
+```
+(request-target): post /users/chef/inbox
+host: cha-cu.it
+date: Fri, 13 Jan 2023 00:24:25 GMT
+digest: SHA-256=0ipv+6eNelzhIkYlUeJkSVz+mAuFPOlABHgWP4UdY1Y=
+content-type: application/activity+json
+```
+
+that will be something like: `PublicKey.verify(signedString, base64.decode(Signature["signature"]))`.
 
 ### Following instances
 
