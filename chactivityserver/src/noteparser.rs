@@ -50,6 +50,24 @@ impl NoteParser {
         Self { config, notes }
     }
 
+    /**
+     * Remove all notes from an user
+     * @param self
+     * @param actors        Banned actors
+     */
+    pub fn clear_user(&mut self, actors: &Vec<String>) {
+        let output_dir = self.config.output_dir.clone();
+        for actor in actors.iter() {
+            self.notes.retain(|k, v| {
+                let _ = fs::remove_file(format!("{}/{}.md", output_dir, v));
+                println!("Removed {}", v);
+                k.contains(actor)
+            });
+
+        }
+        self.update_notes();
+    }
+
     pub fn parse(&mut self, body: Value, best_name: String) {
         // Check that we have valid tag in config (#chacuit)
         let mut tags = String::new();

@@ -55,6 +55,24 @@ impl ArticleParser {
         Self { config, articles }
     }
 
+    /**
+     * Remove all articles from an user
+     * @param self
+     * @param actors        Banned actors
+     */
+    pub fn clear_user(&mut self, actors: &Vec<String>) {
+        let output_dir = self.config.output_dir.clone();
+        for actor in actors.iter() {
+            self.articles.retain(|k, v| {
+                let _ = fs::remove_file(format!("{}/{}.md", output_dir, v));
+                println!("Removed {}", v);
+                k.contains(actor)
+            });
+
+        }
+        self.update_articles();
+    }
+
     pub fn parse(&mut self, body: Value, best_name: String) {
         // Check that we have title/date/duration
         let mut content = body

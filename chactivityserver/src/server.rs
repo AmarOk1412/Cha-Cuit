@@ -239,6 +239,7 @@ impl Server {
      * @param self
      */
     async fn check_cache(&mut self) {
+        // TODO checlk write time for instances/blocked
         // Get the list of recipe paths
         let recipes = self.get_recipe_paths();
 
@@ -421,6 +422,8 @@ impl Server {
                 )
             {
                 println!("Unknown object: {}", follow_obj.object);
+            } else if server.followers.is_blocked(&follow_obj.actor) {
+                return String::from("{}");
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
                 let inbox = Followers::get_inbox(&follow_obj.actor, false)
@@ -473,6 +476,9 @@ impl Server {
                 .as_str()
                 .unwrap_or("")
                 .to_owned();
+            if server.followers.is_blocked(&actor) {
+                return String::from("{}");
+            }
             let base_obj: Value = base_obj.get("object").unwrap().to_owned();
             let obj_type = base_obj.get("type").unwrap().as_str().unwrap_or("");
             if obj_type == "Note" {
@@ -653,7 +659,13 @@ impl Server {
         sorted_recipes: Vec<(&PathBuf, SystemTime)>,
         previous_entry_date: u64,
     ) -> Vec<Value> {
+        let current_blocked = self.followers.blocked.clone();
         self.followers.update_cache().await;
+        let current_blocked: HashSet<_> = current_blocked.iter().collect();
+        let new_blocked: Vec<_> = self.followers.blocked.clone().into_iter().filter(|item| !current_blocked.contains(item)).collect();
+        self.note_parser.clear_user(&new_blocked);
+        self.article_parser.clear_user(&new_blocked);
+
         let chunked_recipes: Vec<Vec<_>> = sorted_recipes
             .chunks(12)
             .map(|chunk| chunk.to_vec())

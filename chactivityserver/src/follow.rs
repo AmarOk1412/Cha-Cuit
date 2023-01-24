@@ -40,6 +40,7 @@ use std::path::Path;
 pub struct Followers {
     pub config: Config,
     pub following: Vec<String>,
+    pub blocked: Vec<String>,
     pub pending_following: Vec<String>,
 }
 
@@ -51,9 +52,15 @@ impl Followers {
     pub fn new(config: Config) -> Followers {
         let mut following = Vec::new();
         let mut pending_following = Vec::new();
+        let mut blocked = Vec::new();
         let path = format!("{}/following.json", config.cache_dir);
         if Path::new(&path).exists() {
             following =
+                serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+        }
+        let path = format!("{}/blocked.json", config.cache_dir);
+        if Path::new(&path).exists() {
+            blocked =
                 serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
         }
         let path = format!("{}/pending_following.json", config.cache_dir);
@@ -65,6 +72,7 @@ impl Followers {
         Followers {
             config,
             following,
+            blocked,
             pending_following,
         }
     }
@@ -238,12 +246,25 @@ impl Followers {
     }
 
     /**
+     * Check if an actor is blocked
+     * @param actor
+     * @return true if the actor is blocked
+     */
+    pub fn is_blocked(&self, actor: &String) -> bool {
+        self.blocked.contains(actor)
+    }
+
+    /**
      * Send a Follow Request to an actor, and add it to the pending_following list
      * @param self
      * @param actor
      * @param actor_inbox
      */
     pub async fn send_follow(&mut self, actor: &String, actor_inbox: &String) {
+        if self.is_blocked(actor) {
+            self.blocked.retain(|x| x != &*actor);
+            self.update_blocked();
+        }
         if !self.is_following(actor) {
             let random_string: String = rand::thread_rng()
                 .sample_iter(&Alphanumeric)
@@ -329,6 +350,17 @@ impl Followers {
      * @param self
      */
     pub async fn update_cache(&mut self) {
+        if Path::new(&self.config.block_list).exists() {
+            let file = File::open(&*self.config.block_list).unwrap();
+            let reader = BufReader::new(file);
+            for actor in reader.lines() {
+                let actor = actor.unwrap();
+                // Add to blocked
+                self.blocked.push(actor.to_string());
+                self.update_blocked();
+            }
+        }
+
         // Read from instances.txt
         // If not in followers, send_follow
         if Path::new(&self.config.instances_list).exists() {
@@ -386,6 +418,17 @@ impl Followers {
         std::fs::write(
             format!("{}/pending_following.json", &self.config.cache_dir),
             serde_json::to_string_pretty(&self.pending_following).unwrap(),
+        )
+        .unwrap();
+    }
+
+    /**
+     * Write self.blocked in blocked.json
+     */
+    fn update_blocked(&self) {
+        std::fs::write(
+            format!("{}/blocked.json", &self.config.cache_dir),
+            serde_json::to_string_pretty(&self.blocked).unwrap(),
         )
         .unwrap();
     }
