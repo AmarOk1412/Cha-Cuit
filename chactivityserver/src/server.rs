@@ -33,11 +33,11 @@ use actix_web::{
     web::{Bytes, Data, Query},
     HttpRequest, HttpResponse, Responder,
 };
-use base64::{Engine as _, engine::general_purpose};
-use http_sig::{RsaSha256Verify, HttpSignatureVerify};
-use chrono::{DateTime, offset::Utc};
-use regex::Regex;
+use base64::{engine::general_purpose, Engine as _};
+use chrono::{offset::Utc, DateTime};
+use http_sig::{HttpSignatureVerify, RsaSha256Verify};
 use openssl::sha::Sha256;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
@@ -239,7 +239,7 @@ impl Server {
      * @param self
      */
     async fn check_cache(&mut self) {
-        // TODO checlk write time for instances/blocked
+        // TODO check write time for instances/blocked
         // Get the list of recipe paths
         let recipes = self.get_recipe_paths();
 
@@ -299,7 +299,7 @@ impl Server {
             return false;
         }
         let date = date.unwrap().to_str().ok().unwrap();
-        let date : DateTime<Utc> = DateTime::parse_from_rfc2822(date).unwrap().into();
+        let date: DateTime<Utc> = DateTime::parse_from_rfc2822(date).unwrap().into();
         let now = Utc::now();
         let diff = now - date;
         if diff.num_hours() > 12 {
@@ -329,7 +329,9 @@ impl Server {
                 .get("keyId")
                 .or_else(|| {
                     // TODO better logger
-                    println!("Verification Failed: Missing required 'keyId' in 'Authorization' header");
+                    println!(
+                        "Verification Failed: Missing required 'keyId' in 'Authorization' header"
+                    );
                     None
                 })
                 .unwrap();
@@ -654,24 +656,99 @@ impl Server {
         fs::read_to_string(format!("{}/{}.json", self.config.cache_dir, page))
     }
 
+    async fn parse_outbox(
+        &mut self,
+        outbox: &String,
+        best_name: &String,
+    ) -> Result<(), reqwest::Error> {
+        let client = reqwest::Client::new();
+        let mut body = client
+            .get(outbox)
+            .header(reqwest::header::ACCEPT, "application/activity+json")
+            .send()
+            .await?
+            .text()
+            .await?;
+        let mut object: Value = serde_json::from_str(&body).unwrap();
+
+        let mut nb_articles = 0;
+        let mut pages = Vec::new();
+
+        loop {
+            let next_page;
+            if object.get("first").is_some() {
+                next_page = object.get("first").unwrap().as_str().unwrap().to_owned();
+            } else if object.get("next").is_some() {
+                next_page = object.get("next").unwrap().as_str().unwrap().to_owned();
+            } else {
+                break;
+            }
+            if pages.contains(&next_page) {
+                println!("Loop detected: {}", next_page);
+                break;
+            }
+            if object.get("items").is_some() {
+                for article in object.get("items").unwrap().as_array().unwrap() {
+                    if article.get("object").is_some() {
+                        self.article_parser.parse(
+                            article.get("object").unwrap().to_owned(),
+                            best_name.to_owned(),
+                        );
+                        nb_articles += 1;
+                        if nb_articles > 1000 {
+                            return Ok(()); // Avoid too many articles
+                        }
+                    }
+                }
+            }
+            pages.push(next_page.clone());
+            body = client
+                .get(next_page)
+                .header(reqwest::header::ACCEPT, "application/activity+json")
+                .send()
+                .await?
+                .text()
+                .await?;
+            object = serde_json::from_str(&body).unwrap();
+        }
+        Ok(())
+    }
+
     async fn update_cache(
         &mut self,
         sorted_recipes: Vec<(&PathBuf, SystemTime)>,
         previous_entry_date: u64,
     ) -> Vec<Value> {
         let current_blocked = self.followers.blocked.clone();
-        self.followers.update_cache().await;
+        let mut followed_instances = Vec::new();
+        self.followers.update_cache(&mut followed_instances).await;
         let current_blocked: HashSet<_> = current_blocked.iter().collect();
-        let new_blocked: Vec<_> = self.followers.blocked.clone().into_iter().filter(|item| !current_blocked.contains(item)).collect();
+        let new_blocked: Vec<_> = self
+            .followers
+            .blocked
+            .clone()
+            .into_iter()
+            .filter(|item| !current_blocked.contains(item))
+            .collect();
         self.note_parser.clear_user(&new_blocked);
         self.article_parser.clear_user(&new_blocked);
+
+        for actor in followed_instances {
+            // For new instances, get last articles
+            let best_name = Followers::get_best_name(&actor)
+                .await
+                .unwrap_or(String::new());
+            let _ = self
+                .parse_outbox(&Followers::get_outbox(&actor).await.unwrap(), &best_name)
+                .await;
+        }
 
         let chunked_recipes: Vec<Vec<_>> = sorted_recipes
             .chunks(12)
             .map(|chunk| chunk.to_vec())
             .collect();
         let max_page: usize = chunked_recipes.len();
-        let mut idx_page = 0;
+        let mut idx_page = 1;
         const HEADER_TITLE_REGEX: &str = r#"title: ([^\n]+)\n"#;
         const HEADER_TAGS_REGEX: &str = r#"tags: \[([^\n]+)\]\n"#;
         let mut to_announce: Vec<Value> = Vec::new();

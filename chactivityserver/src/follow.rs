@@ -330,6 +330,22 @@ impl Followers {
     }
 
     /**
+     * Get outbox from fediverse actor
+     */
+    pub async fn get_outbox(actor: &String) -> Result<String, reqwest::Error> {
+        let client = reqwest::Client::new();
+        let body = client
+            .get(actor)
+            .header(reqwest::header::ACCEPT, "application/activity+json")
+            .send()
+            .await?
+            .text()
+            .await?;
+        let object: Value = serde_json::from_str(&body).unwrap();
+        Ok(object["outbox"].as_str().unwrap().to_owned())
+    }
+
+    /**
      * Get best name from fediverse actor
      */
     pub async fn get_best_name(actor: &String) -> Result<String, reqwest::Error> {
@@ -349,7 +365,7 @@ impl Followers {
      * Follow new instances or manually added contacts from the config files
      * @param self
      */
-    pub async fn update_cache(&mut self) {
+    pub async fn update_cache(&mut self, instances: &mut Vec<String>) {
         if Path::new(&self.config.block_list).exists() {
             let file = File::open(&*self.config.block_list).unwrap();
             let reader = BufReader::new(file);
@@ -376,6 +392,7 @@ impl Followers {
                     if !inbox.is_empty() {
                         self.send_follow(&actor, &inbox).await;
                     }
+                    instances.push(actor);
                 }
             }
         }

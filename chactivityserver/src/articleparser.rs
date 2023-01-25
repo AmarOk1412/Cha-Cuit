@@ -68,7 +68,6 @@ impl ArticleParser {
                 println!("Removed {}", v);
                 k.contains(actor)
             });
-
         }
         self.update_articles();
     }
@@ -98,7 +97,12 @@ impl ArticleParser {
         let duration = match_duration.get(1).map_or("", |m| m.as_str()).to_owned();
         let id = body.get("id").unwrap().as_str().unwrap_or("").to_owned();
 
-        if title.len() == 0 || date.len() == 0 || duration.len() == 0 || id.len() == 0 {
+        if title.len() == 0
+            || date.len() == 0
+            || duration.len() == 0
+            || id.len() == 0
+            || self.articles.contains_key(&id)
+        {
             return;
         }
 
@@ -110,10 +114,17 @@ impl ArticleParser {
         if tags.len() != 0 {
             tags = format!("tags: {}\n", tags);
         }
-        let match_thumbnail = re_thumbnail.captures(&content).unwrap();
-        let mut thumbnail = match_thumbnail.get(1).map_or("", |m| m.as_str()).to_owned();
-        if thumbnail.len() != 0 {
-            thumbnail = format!("thumbnail: {}\n", thumbnail);
+        let match_thumbnail = re_thumbnail.captures(&content);
+        let mut thumbnail = String::new();
+        if match_thumbnail.is_some() {
+            thumbnail = match_thumbnail
+                .unwrap()
+                .get(1)
+                .map_or("", |m| m.as_str())
+                .to_owned();
+            if thumbnail.len() != 0 {
+                thumbnail = format!("thumbnail: {}\n", thumbnail);
+            }
         }
 
         let sep = content.find("---");
@@ -123,10 +134,10 @@ impl ArticleParser {
         content = (&content[(sep.unwrap() + 4)..]).to_owned();
 
         content = format!(
-            r#"
----
+            r#"---
 title: {}
 date: {}
+duration: {}
 author: {}
 {}{}---
 
@@ -134,7 +145,7 @@ author: {}
 
 {}
 "#,
-            title, date, best_name, tags, thumbnail, content, id
+            title, date, duration, best_name, tags, thumbnail, content, id
         );
 
         // Fix thumbnail/images links (with incoming domain)

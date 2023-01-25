@@ -63,7 +63,6 @@ impl NoteParser {
                 println!("Removed {}", v);
                 k.contains(actor)
             });
-
         }
         self.update_notes();
     }
