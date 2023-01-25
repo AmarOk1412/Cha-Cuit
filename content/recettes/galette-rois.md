@@ -11,6 +11,7 @@ thumbnail: "/img/galette-rois/galette-rois.jpg"
 + [1,5 pâte feuilletée](/recettes/pate-feuilletee)
 + 100g de beurre
 + 150g de sucre
++ 150g de poudre d'amandes
 + 3 œufs
 
 # Équipement
