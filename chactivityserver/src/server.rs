@@ -874,7 +874,7 @@ impl Server {
                 ],
                 "items": articles
             });
-            if idx_page > 1 {
+            if idx_page > 0 {
                 outbox_json["prev"] = serde_json::Value::String(format!(
                     "https://{}/users/{}/outbox?page={}",
                     self.config.domain,
