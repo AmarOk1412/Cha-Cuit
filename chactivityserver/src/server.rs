@@ -462,6 +462,7 @@ impl Server {
                 println!("Like {} from {}", like_obj.object, like_obj.actor);
                 server.likes.like(&like_obj.object, &like_obj.actor);
             }
+            return String::from("{}");
         } else if base_obj.object_type == "Announce" {
             let announce_obj: LikeObject = serde_json::from_str(&body).unwrap();
             if announce_obj.object.contains(&server.config.domain) {
@@ -470,6 +471,7 @@ impl Server {
                     .likes
                     .boost(&announce_obj.object, &announce_obj.actor);
             }
+            return String::from("{}");
         } else if base_obj.object_type == "Create" {
             let base_obj: Value = serde_json::from_str(&body).unwrap();
             let actor = base_obj
