@@ -67,14 +67,14 @@ impl NoteParser {
         self.update_notes();
     }
 
-    pub fn parse(&mut self, body: Value, best_name: String) {
+    pub fn parse(&mut self, body: Value, best_name: String) -> bool {
         // Check that we have valid tag in config (#chacuit)
         let mut tags = String::new();
         let mut idx = 0;
         let mut chacuit_tag_found = false;
         let id = body.get("id").unwrap().as_str().unwrap().to_owned();
         if id.len() == 0 || self.notes.contains_key(&id) {
-            return;
+            return false;
         }
         let note_tags = body.get("tag").unwrap().as_array().unwrap();
         for nt in note_tags.iter() {
@@ -108,7 +108,7 @@ impl NoteParser {
         }
 
         if !chacuit_tag_found {
-            return;
+            return false;
         }
 
         // Build file:
@@ -116,7 +116,7 @@ impl NoteParser {
         let html_content = body.get("content").unwrap().as_str().unwrap_or("");
         let content = html2text::from_read(&html_content.as_bytes()[..], html_content.len());
         if title.len() == 0 || content.len() == 0 {
-            return;
+            return false;
         }
 
         let now = SystemTime::now();
@@ -155,7 +155,9 @@ author: {}
             self.notes.insert(id, random_string);
             self.update_notes();
             println!("Write a note for {}", title);
+            return true;
         }
+        false
     }
 
     /**

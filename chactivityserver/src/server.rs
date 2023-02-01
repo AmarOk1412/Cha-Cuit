@@ -42,6 +42,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashSet};
+use std::fs::OpenOptions;
+use std::io::prelude::*;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::SystemTime;
@@ -491,8 +493,31 @@ impl Server {
                     let best_name = Followers::get_best_name(&actor)
                         .await
                         .unwrap_or(String::new());
-                    server.note_parser.parse(base_obj, best_name);
+                    if server.note_parser.parse(base_obj.clone(), best_name) {
+                        return String::from("{}");
+                    }
                 }
+                if base_obj.get("cc").is_none() || base_obj.get("inReplyToAtomUri").is_none() {
+                    return String::from("{}");
+                }
+                let cc = base_obj.get("cc").unwrap().as_array().unwrap();
+                if cc.contains(&json!(format!("https://{}/users/{}", server.config.domain, server.config.user))) {
+                    let reply_to = base_obj.get("inReplyToAtomUri").unwrap().as_str().unwrap_or("");
+                    let html_content = base_obj.get("content").unwrap().as_str().unwrap_or("");
+                    let content = html2text::from_read(&html_content.as_bytes()[..], html_content.len());
+                    let reply = format!("{} - {}: {}", reply_to, actor, content);
+                    println!("{}", reply);
+                    let mut file = OpenOptions::new()
+                        .create_new(true)
+                        .write(true)
+                        .append(true)
+                        .open(format!("{}/mentions", server.config.cache_dir))
+                        .unwrap();
+                    if let Err(e) = writeln!(file, "{}", reply) {
+                        eprintln!("Couldn't write to file: {}", e);
+                    }
+                }
+                return String::from("{}");
             } else if obj_type == "Article" {
                 // Check that we follow author
                 if server.followers.is_following(&actor) {
@@ -504,6 +529,7 @@ impl Server {
                     );
                 }
             }
+            println!("{}", body);
             return String::from("{}");
         }
 
