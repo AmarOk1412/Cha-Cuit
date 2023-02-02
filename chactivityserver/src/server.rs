@@ -538,11 +538,9 @@ impl Server {
             let base_object = request.get("object").unwrap();
             let obj_type = base_object.get("type").unwrap().as_str().unwrap();
             if obj_type == "Follow" {
-                let mut f = server.followers.followers();
                 let actor = base_object.get("actor").unwrap().as_str().unwrap();
                 println!("Get Unfollow object from {}", actor);
-                f.retain(|x| x != &*actor);
-                server.followers.write_followers(&f);
+                server.followers.unfollow(&actor.to_owned());
             } else if obj_type == "Like" {
                 let object = base_object
                     .get("object")
@@ -936,9 +934,8 @@ impl Server {
      * @param to_announce   Articles to announce
      */
     async fn announce_articles(&self, to_annnounce: Vec<Value>) {
-        let followers = self.followers.followers();
         let mut inboxes = HashSet::new();
-        for follower in followers {
+        for follower in &self.followers.followers {
             inboxes.insert(Followers::get_inbox(&follower, true).await.unwrap());
         }
         // Get inbox from followers

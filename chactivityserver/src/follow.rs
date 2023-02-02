@@ -31,7 +31,7 @@ use rand::{distributions::Alphanumeric, Rng};
 use serde_json::json;
 use serde_json::Value;
 use std::fs;
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::io::prelude::*;
 use std::io::BufReader;
 use std::path::Path;
@@ -39,6 +39,7 @@ use std::path::Path;
 #[derive(Debug, Clone)]
 pub struct Followers {
     pub config: Config,
+    pub followers: Vec<String>,
     pub following: Vec<String>,
     pub blocked: Vec<String>,
     pub pending_following: Vec<String>,
@@ -50,9 +51,15 @@ impl Followers {
      * Data is serialized in .cache/following.json, .cache/pending_following.json
      */
     pub fn new(config: Config) -> Followers {
+        let mut followers = Vec::new();
         let mut following = Vec::new();
         let mut pending_following = Vec::new();
         let mut blocked = Vec::new();
+        let path = format!("{}/followers.json", config.cache_dir);
+        if Path::new(&path).exists() {
+            followers =
+                serde_json::from_str(&*fs::read_to_string(path).unwrap_or(String::new())).unwrap();
+        }
         let path = format!("{}/following.json", config.cache_dir);
         if Path::new(&path).exists() {
             following =
@@ -71,6 +78,7 @@ impl Followers {
 
         Followers {
             config,
+            followers,
             following,
             blocked,
             pending_following,
@@ -101,8 +109,6 @@ impl Followers {
      * @param self
      */
     pub fn user_followers(&self) -> impl Responder {
-        let f = self.followers();
-
         let followers_json = json!({
             "@context": [
               "https://www.w3.org/ns/activitystreams",
@@ -110,48 +116,11 @@ impl Followers {
               Followers::mastodon_value()
             ],
             "id": format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
-            "items": f,
-            "totalItems": f.len(),
+            "items": self.followers,
+            "totalItems": self.followers.len(),
             "type": "OrderedCollection"
         });
         HttpResponse::Ok().json(followers_json)
-    }
-
-    /**
-     * @todo only serialize once and update the file
-     * instead of rewritting it
-     */
-    pub fn followers(&self) -> Vec<String> {
-        let mut followers: Vec<String> = Vec::new();
-        if Path::new(&*format!("{}/followers", self.config.cache_dir)).exists() {
-            let file = File::open(format!("{}/followers", self.config.cache_dir)).unwrap();
-            let buf = BufReader::new(file);
-            followers = buf
-                .lines()
-                .map(|l| l.expect("Could not parse line"))
-                .collect();
-        }
-        followers
-    }
-
-    /**
-     * @todo only serialize once and update the file
-     * instead of rewritting it
-     */
-    pub fn write_followers(&self, followers: &Vec<String>) {
-        // TODO serialize and refresh instead removing
-        let _ = fs::remove_file(&*format!("{}/followers", self.config.cache_dir));
-        let mut file = OpenOptions::new()
-            .create_new(true)
-            .write(true)
-            .append(false)
-            .open(format!("{}/followers", self.config.cache_dir))
-            .unwrap();
-        for follower in followers {
-            if let Err(e) = writeln!(file, "{}", follower) {
-                eprintln!("Couldn't write to file: {}", e);
-            }
-        }
     }
 
     /**
@@ -161,11 +130,9 @@ impl Followers {
      * @param follow_object
      * @param actor_inbox
      */
-    pub async fn accept(&self, follow_obj: &FollowObject, actor_inbox: &String) {
-        let mut f = self.followers();
-        f.retain(|x| x != &*follow_obj.actor);
-        f.push(follow_obj.actor.clone());
-        self.write_followers(&f);
+    pub async fn accept(&mut self, follow_obj: &FollowObject, actor_inbox: &String) {
+        self.followers.push(follow_obj.actor.clone());
+        self.update_followers();
         // Send accept to inbox of the actor
         self.post_inbox(
             actor_inbox,
@@ -179,6 +146,16 @@ impl Followers {
         )
         .await
         .unwrap();
+    }
+
+    /**
+     * Unfollow someone
+     * @param self
+     * @param actor
+     */
+    pub fn unfollow(&mut self, actor: &String) {
+        self.followers.retain(|x| x != actor);
+        self.update_followers();
     }
 
     /**
@@ -424,6 +401,17 @@ impl Followers {
         std::fs::write(
             format!("{}/following.json", &self.config.cache_dir),
             serde_json::to_string_pretty(&self.following).unwrap(),
+        )
+        .unwrap();
+    }
+
+    /**
+     * Write self.following in following.json
+     */
+    fn update_followers(&self) {
+        std::fs::write(
+            format!("{}/followers.json", &self.config.cache_dir),
+            serde_json::to_string_pretty(&self.followers).unwrap(),
         )
         .unwrap();
     }

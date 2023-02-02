@@ -55,7 +55,6 @@ impl Profile {
           "manuallyApprovesFollowers": self.config.manually_approve_followers,
           "discoverable": self.config.discoverable,
           "published": "2022-11-11T11:11:11Z", // TODO get oldest recipe
-          "devices": format!("https://{}/users/{}/collections/devices", self.config.domain, self.config.user), // TODO endpoint
           "publicKey": {
             "id": format!("https://{}/users/{}#main-key", self.config.domain, self.config.user),
             "owner": format!("https://{}/users/{}", self.config.domain, self.config.user),
