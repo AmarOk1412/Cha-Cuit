@@ -23,15 +23,25 @@
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  **/
 // TODO i18n
-// TODO docs
+/**
+ * Convert Fahrenheit to celsius
+ * @param {farhenheit degrees} value
+ */
 function farenheit_to_celsius(value) {
     return Math.round((parseInt(value) - 32 / 1.8))
 }
 
+/**
+ * Convert Celsius to fahrenheit
+ * @param {celsius degrees} value
+ */
 function celsius_to_fahrenheit(value) {
     return Math.round((parseInt(value) * 1.8) + 32)
 }
 
+/**
+ * french, id, density, isLiquid
+ */
 const INGREDIENT_DATA = [
     ["eau", "water", 1, true],
     ["beurre", "butter", .911, false],
@@ -49,6 +59,10 @@ const INGREDIENT_DATA = [
     ["crème", "cream", 1, true]
 ];
 
+/**
+ * Convert a french ingredient to ingredient's id
+ * @param {the ingredient} string
+ */
 function to_ingredient(string) {
     for (const [fr_ingredient, ingredient, density, isLiquid] of INGREDIENT_DATA) {
         if (string.includes(fr_ingredient)) {
@@ -59,6 +73,10 @@ function to_ingredient(string) {
     return "";
 }
 
+/**
+ * Get ingredient's density
+ * @param {id} ingredient
+ */
 function ingredient_density(ingredient) {
     for (const [fr_ingredient, ingredientName, density, isLiquid] of INGREDIENT_DATA) {
         if (ingredientName === ingredient) {
@@ -68,6 +86,10 @@ function ingredient_density(ingredient) {
     return 1;
 }
 
+/**
+ * Return if an ingredient is a liquid
+ * @param {id} ingredient
+ */
 function is_liquid(ingredient) {
     for (const [fr_ingredient, ingredientName, density, isLiquid] of INGREDIENT_DATA) {
         if (ingredientName === ingredient) {
@@ -78,8 +100,6 @@ function is_liquid(ingredient) {
 }
 
 var cups_size = 250. // mL (Canadian size) - US = 236.588236
-var prefCelsius = true
-var prefCups = false
 
 function grams_to_cups(value, ingredient) {
     return (parseFloat(value).toFixed(5) / (cups_size * ingredient_density(ingredient))).toFixed(3)
@@ -143,6 +163,13 @@ function use_standard(span, useStandard) {
     }
 }
 
+// User's preferences
+var prefCelsius = true
+var prefCups = false
+
+/**
+ * Fill page with span to switch from standard to heretics measures
+ */
 function update_spans() {
     var temperatureSpans = document.getElementsByClassName("temperature")
     for (var span of temperatureSpans) {
@@ -154,6 +181,10 @@ function update_spans() {
     }
 }
 
+/**
+ * Parse page and replace temperatures by spans
+ * @param {the content} body
+ */
 function prepare_temperature_spans(body) {
     for (const match of body.matchAll(/([0-9]+)°F/g)) {
         farenheit_text = match[0]
@@ -170,6 +201,10 @@ function prepare_temperature_spans(body) {
     return body
 }
 
+/**
+ * Convert an integer to a value for humans
+ * @param {number of cups} cups
+ */
 function cups_to_string(cups) {
     if (cups % 1 > 0) {
         if (Math.floor(cups) === 0)
@@ -181,6 +216,10 @@ function cups_to_string(cups) {
         return Math.floor(cups) + " tasse(s) "
 }
 
+/**
+ * Parse a body to get all strings to convert
+ * @param {content to parse} body
+ */
 function prepare_quantity_spans(body) {
     const matches = (body, regex, toString, ratio) => {
         for (const match of body.matchAll(regex)) {
@@ -239,7 +278,9 @@ function prepare_quantity_spans(body) {
     return body
 }
 
-// TODO localisation
+/**
+ * Transform the article and replace quantities by configurable spans.
+ */
 function parse_page() {
     var article = document.getElementsByClassName("prose")
     if (article.length === 0)
@@ -261,7 +302,6 @@ function parse_page() {
 }
 
 // Store preferences
-
 function setCookie(cname, cvalue, exdays=7) {
     const d = new Date()
     d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000))

@@ -266,3 +266,15 @@ There is 2 ways to get incoming articles from the Fediverse:
 1. Following users. This is configurable via `config.json` (`auto_follow_back` and `manual_follow_list` which can contains
 actors that will be automatically followed during cache invalidation)
 2. Following other instances via `instances.txt`.
+
+### Mentions
+
+New comments on article are not shown (at least for now), but if somebody answer to a post (e.g. via
+commenting it on mastodon), the comment will be saved in `.cache/mentions`. So that you can do
+whatever you want with the comments.
+
+### Blocking instances
+
+To block a user or an instance, simply add it to the file configured in `block_list` in the config.
+At the next update, they will be added to the block list, all previous content hidden, new content
+will be discarded and the blocked user will be un-followed.

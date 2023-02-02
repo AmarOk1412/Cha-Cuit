@@ -501,10 +501,18 @@ impl Server {
                     return String::from("{}");
                 }
                 let cc = base_obj.get("cc").unwrap().as_array().unwrap();
-                if cc.contains(&json!(format!("https://{}/users/{}", server.config.domain, server.config.user))) {
-                    let reply_to = base_obj.get("inReplyToAtomUri").unwrap().as_str().unwrap_or("");
+                if cc.contains(&json!(format!(
+                    "https://{}/users/{}",
+                    server.config.domain, server.config.user
+                ))) {
+                    let reply_to = base_obj
+                        .get("inReplyToAtomUri")
+                        .unwrap()
+                        .as_str()
+                        .unwrap_or("");
                     let html_content = base_obj.get("content").unwrap().as_str().unwrap_or("");
-                    let content = html2text::from_read(&html_content.as_bytes()[..], html_content.len());
+                    let content =
+                        html2text::from_read(&html_content.as_bytes()[..], html_content.len());
                     let reply = format!("{} - {}: {}", reply_to, actor, content);
                     println!("{}", reply);
                     let mut file = OpenOptions::new()
