@@ -6,8 +6,8 @@ edition = "2018"
 license = "BSD 2 Clause"
 
 [dependencies]
-actix-web = "4.2.1"
-actix-rt = "2.7"
+actix-web = "4.3.0"
+actix-rt = "2.8"
 base64 = "0.21.0"
 chrono = "0.4"
 http-sig = { git = "https://github.com/AmarOk1412/http-signatures", rev="d6d40263cc47e7e564b36b388edf081e83489d40", features = ["openssl", "reqwest"] }

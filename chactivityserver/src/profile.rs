@@ -25,8 +25,10 @@
 use crate::config::Config;
 
 use actix_web::{HttpResponse, Responder};
+use chrono::{offset::Utc, DateTime};
 use serde_json::json;
 use serde_json::Value;
+use std::fs;
 
 #[derive(Debug, Clone)]
 pub struct Profile {
@@ -35,6 +37,14 @@ pub struct Profile {
 
 impl Profile {
     pub fn profile(&self) -> impl Responder {
+        let metadata = fs::metadata("config.json");
+        if metadata.is_err() {
+            return HttpResponse::Ok().json(json!({}));
+        }
+        let creation_date = metadata.unwrap().created().unwrap();
+        let datetime: DateTime<Utc> = creation_date.into();
+        let published = datetime.format("%+").to_string();
+
         let profile_json = json!({
           "@context": [
             "https://www.w3.org/ns/activitystreams",
@@ -54,7 +64,7 @@ impl Profile {
           "url": format!("https://{}/recettes/", self.config.domain),
           "manuallyApprovesFollowers": self.config.manually_approve_followers,
           "discoverable": self.config.discoverable,
-          "published": "2022-11-11T11:11:11Z", // TODO get oldest recipe
+          "published": published,
           "publicKey": {
             "id": format!("https://{}/users/{}#main-key", self.config.domain, self.config.user),
             "owner": format!("https://{}/users/{}", self.config.domain, self.config.user),
