@@ -515,11 +515,18 @@ impl Server {
                         html2text::from_read(&html_content.as_bytes()[..], html_content.len());
                     let reply = format!("{} - {}: {}", reply_to, actor, content);
                     println!("{}", reply);
+                    let path = format!("{}/mentions", server.config.cache_dir);
+                    if !Path::new(&path).exists() {
+                        let _file = OpenOptions::new()
+                            .create_new(true)
+                            .open(path.clone())
+                            .unwrap();
+                    }
+
                     let mut file = OpenOptions::new()
-                        .create_new(true)
                         .write(true)
                         .append(true)
-                        .open(format!("{}/mentions", server.config.cache_dir))
+                        .open(path)
                         .unwrap();
                     if let Err(e) = writeln!(file, "{}", reply) {
                         eprintln!("Couldn't write to file: {}", e);
