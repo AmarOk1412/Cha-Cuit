@@ -180,14 +180,18 @@ impl Server {
      */
     pub async fn outbox(server: Data<Mutex<Server>>, info: Query<OutboxParams>) -> impl Responder {
         let config: Config;
+        let followers: Followers;
         {
             let server = server.lock().unwrap();
             config = server.config.clone();
+            followers = server.followers.clone();
         }
         let page: usize = info.page.unwrap_or(0) as usize;
         if page == 0 {
             return Server::outbox_page_0(&config);
         }
+        Server::check_cache(&config, &followers).await;
+
         let mut server = server.lock().unwrap();
         server.outbox_page(page).await
     }
@@ -236,8 +240,6 @@ impl Server {
      * @param page
      */
     async fn outbox_page(&mut self, page: usize) -> HttpResponse {
-        Server::check_cache(&self.config, &self.followers).await;
-
         // Read the cache for the requested page
         let content = self
             .read_cache_for_page(page)
@@ -427,7 +429,7 @@ impl Server {
             return String::from("");
         }
         let config: Config;
-        let followers: Followers;
+        let mut followers: Followers;
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
         {
@@ -464,29 +466,20 @@ impl Server {
 
         Server::check_cache(&config, &followers).await;
 
-        let mut server = server.lock().unwrap();
         if base_obj.object_type == "Follow" {
             let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
-            if follow_obj.object
-                != format!(
-                    "https://{}/users/{}",
-                    server.config.domain, server.config.user
-                )
-            {
+            if follow_obj.object != format!("https://{}/users/{}", config.domain, config.user) {
                 println!("Unknown object: {}", follow_obj.object);
-            } else if server.followers.is_blocked(&follow_obj.actor) {
+            } else if followers.is_blocked(&follow_obj.actor) {
                 return String::from("{}");
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
                 let inbox = Followers::get_inbox(&follow_obj.actor, false)
                     .await
                     .unwrap_or(String::new());
-                server.followers.accept(&follow_obj, &inbox).await;
-                if server.config.auto_follow_back {
-                    server
-                        .followers
-                        .send_follow(&follow_obj.actor, &inbox)
-                        .await;
+                followers.accept(&follow_obj, &inbox).await;
+                if config.auto_follow_back {
+                    followers.send_follow(&follow_obj.actor, &inbox).await;
                 }
             }
             return String::from("{}");
@@ -503,20 +496,22 @@ impl Server {
             {
                 let follow_obj: FollowObject =
                     serde_json::from_value(object.get("object").unwrap().clone()).unwrap();
-                server.followers.follow_accepted(&follow_obj.object).await;
+                followers.follow_accepted(&follow_obj.object).await;
             }
             return String::from("{}");
         } else if base_obj.object_type == "Like" {
             let like_obj: LikeObject = serde_json::from_str(&body).unwrap();
-            if like_obj.object.contains(&server.config.domain) {
+            if like_obj.object.contains(&config.domain) {
                 println!("Like {} from {}", like_obj.object, like_obj.actor);
+                let mut server = server.lock().unwrap();
                 server.likes.like(&like_obj.object, &like_obj.actor);
             }
             return String::from("{}");
         } else if base_obj.object_type == "Announce" {
             let announce_obj: LikeObject = serde_json::from_str(&body).unwrap();
-            if announce_obj.object.contains(&server.config.domain) {
+            if announce_obj.object.contains(&config.domain) {
                 println!("Boost {} from {}", announce_obj.object, announce_obj.actor);
+                let mut server = server.lock().unwrap();
                 server
                     .likes
                     .boost(&announce_obj.object, &announce_obj.actor);
@@ -530,17 +525,18 @@ impl Server {
                 .as_str()
                 .unwrap_or("")
                 .to_owned();
-            if server.followers.is_blocked(&actor) {
+            if followers.is_blocked(&actor) {
                 return String::from("{}");
             }
             let base_obj: Value = base_obj.get("object").unwrap().to_owned();
             let obj_type = base_obj.get("type").unwrap().as_str().unwrap_or("");
             if obj_type == "Note" {
                 // Check that we follow author
-                if server.followers.is_following(&actor) {
+                if followers.is_following(&actor) {
                     let best_name = Followers::get_best_name(&actor)
                         .await
                         .unwrap_or(String::new());
+                    let mut server = server.lock().unwrap();
                     if server.note_parser.parse(base_obj.clone(), best_name) {
                         return String::from("{}");
                     }
@@ -551,7 +547,7 @@ impl Server {
                 let cc = base_obj.get("cc").unwrap().as_array().unwrap();
                 if cc.contains(&json!(format!(
                     "https://{}/users/{}",
-                    server.config.domain, server.config.user
+                    config.domain, config.user
                 ))) {
                     let reply_to = base_obj
                         .get("inReplyToAtomUri")
@@ -563,7 +559,7 @@ impl Server {
                         html2text::from_read(&html_content.as_bytes()[..], html_content.len());
                     let reply = format!("{} - {}: {}", reply_to, actor, content);
                     println!("{}", reply);
-                    let path = format!("{}/mentions", server.config.cache_dir);
+                    let path = format!("{}/mentions", config.cache_dir);
                     if !Path::new(&path).exists() {
                         let _file = OpenOptions::new()
                             .create_new(true)
@@ -583,7 +579,8 @@ impl Server {
                 return String::from("{}");
             } else if obj_type == "Article" {
                 // Check that we follow author
-                if server.followers.is_following(&actor) {
+                if followers.is_following(&actor) {
+                    let mut server = server.lock().unwrap();
                     server.article_parser.parse(
                         base_obj,
                         Followers::get_best_name(&actor)
@@ -603,7 +600,7 @@ impl Server {
             if obj_type == "Follow" {
                 let actor = base_object.get("actor").unwrap().as_str().unwrap();
                 println!("Get Unfollow object from {}", actor);
-                server.followers.unfollow(&actor.to_owned());
+                followers.unfollow(&actor.to_owned());
             } else if obj_type == "Like" {
                 let object = base_object
                     .get("object")
@@ -618,8 +615,9 @@ impl Server {
                     .unwrap()
                     .to_string();
 
-                if object.contains(&server.config.domain) {
+                if object.contains(&config.domain) {
                     println!("UnLike {} from {}", object, actor);
+                    let mut server = server.lock().unwrap();
                     server.likes.unlike(&object, &actor);
                 }
             } else if obj_type == "Announce" {
@@ -635,8 +633,9 @@ impl Server {
                     .as_str()
                     .unwrap()
                     .to_string();
-                if object.contains(&server.config.domain) {
+                if object.contains(&config.domain) {
                     println!("UnBoost {} from {}", object, actor);
+                    let mut server = server.lock().unwrap();
                     server.likes.unboost(&object, &actor);
                 }
             }
