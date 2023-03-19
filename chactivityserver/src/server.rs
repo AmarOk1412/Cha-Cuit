@@ -126,23 +126,27 @@ impl Server {
         server: Data<Mutex<Server>>,
         info: Query<WebFingerRequest>,
     ) -> impl Responder {
-        let server = server.lock().unwrap();
-        if info.resource == format!("acct:{}@{}", server.config.user, server.config.domain) {
+        let config: Config;
+        {
+            let server = server.lock().unwrap();
+            config = server.config.clone();
+        }
+        if info.resource == format!("acct:{}@{}", config.user, config.domain) {
             return HttpResponse::Ok().json(json!({
                 "subject": info.resource,
                 "aliases": [
-                    format!("https://{}/{}/", server.config.domain, server.config.profile),
+                    format!("https://{}/{}/", config.domain, config.profile),
                 ],
                 "links": [
                     {
                         "rel": "http://webfinger.net/rel/profile-page",
                         "type": "text/html",
-                        "href": format!("https://{}/{}", server.config.domain, server.config.profile)
+                        "href": format!("https://{}/{}", config.domain, config.profile)
                     },
                     {
                         "rel": "self",
                         "type": "application/activity+json",
-                        "href": format!("https://{}/users/{}", server.config.domain, server.config.user)
+                        "href": format!("https://{}/users/{}", config.domain, config.user)
                     }
                 ]
             }));
@@ -175,11 +179,16 @@ impl Server {
      * @return Outbox' json
      */
     pub async fn outbox(server: Data<Mutex<Server>>, info: Query<OutboxParams>) -> impl Responder {
-        let mut server = server.lock().unwrap();
+        let config: Config;
+        {
+            let server = server.lock().unwrap();
+            config = server.config.clone();
+        }
         let page: usize = info.page.unwrap_or(0) as usize;
         if page == 0 {
-            return server.outbox_page_0();
+            return Server::outbox_page_0(&config);
         }
+        let mut server = server.lock().unwrap();
         server.outbox_page(page).await
     }
 
@@ -207,17 +216,17 @@ impl Server {
      * Handle Outbox requests if page == 0
      * @param page
      */
-    fn outbox_page_0(&self) -> HttpResponse {
-        let recipes = self.get_recipe_paths();
+    fn outbox_page_0(config: &Config) -> HttpResponse {
+        let recipes = Server::get_recipe_paths(&config.input_dir);
         let max_page: usize = (recipes.len() / 12) + 1;
         // If no page provided, then describe the other pages
         let outbox_json = json!({
             "@context": "https://www.w3.org/ns/activitystreams",
-            "id": format!("https://{}/users/{}/outbox", self.config.domain, self.config.user),
+            "id": format!("https://{}/users/{}/outbox", config.domain, config.user),
             "type": "OrderedCollection",
             "totalItems": recipes.len(),
-            "first": format!("https://{}/users/{}/outbox?page=1", self.config.domain, self.config.user),
-            "last": format!("https://{}/users/{}/outbox?page={}", self.config.domain, self.config.user, max_page),
+            "first": format!("https://{}/users/{}/outbox?page=1", config.domain, config.user),
+            "last": format!("https://{}/users/{}/outbox?page={}", config.domain, config.user, max_page),
         });
         return HttpResponse::Ok().json(outbox_json);
     }
@@ -227,7 +236,7 @@ impl Server {
      * @param page
      */
     async fn outbox_page(&mut self, page: usize) -> HttpResponse {
-        self.check_cache().await;
+        Server::check_cache(&self.config, &self.followers).await;
 
         // Read the cache for the requested page
         let content = self
@@ -240,29 +249,34 @@ impl Server {
      * Because we use a static website, update the cache to announce articles ASAP
      * @param self
      */
-    async fn check_cache(&mut self) {
+    async fn check_cache(config: &Config, followers: &Followers) {
         // TODO check write time for instances/blocked
         // Get the list of recipe paths
-        let recipes = self.get_recipe_paths();
+        let recipes = Server::get_recipe_paths(&config.input_dir);
 
         // Sort the recipes by last modification time
         let sorted_recipes = Server::sort_recipes_by_modified_time(&recipes);
 
         // Create the cache directories if they do not exist
-        self.create_cache_directories()
+        fs::create_dir_all(&config.cache_dir)
+            .unwrap_or_else(|_| println!("Failed to create directories"));
+        fs::create_dir_all(&config.output_dir)
             .unwrap_or_else(|_| println!("Failed to create directories"));
 
-        let (file_date, file_nb_articles) = self
-            .read_date_and_article_count_from_cache()
-            .unwrap_or((0, 0));
+        let (file_date, file_nb_articles) =
+            Server::read_date_and_article_count_from_cache(&config.cache_dir).unwrap_or((0, 0));
 
         // Get the date of the first entry
         let first_entry_date = Server::get_first_entry_date(&sorted_recipes);
         if first_entry_date > file_date || file_nb_articles != recipes.len() {
             println!("Refreshing cache.");
-            let to_announce = self.update_cache(sorted_recipes, file_date).await;
-            let _ = self.write_date_and_article_count_to_cache(first_entry_date, recipes.len());
-            self.announce_articles(to_announce).await;
+            let to_announce = Server::update_cache(&config, sorted_recipes, file_date).await;
+            let _ = Server::write_date_and_article_count_to_cache(
+                &config,
+                first_entry_date,
+                recipes.len(),
+            );
+            Server::announce_articles(&followers, to_announce).await;
         }
     }
 
@@ -294,7 +308,7 @@ impl Server {
         Ok(pk.unwrap().as_str().unwrap().to_owned())
     }
 
-    async fn verify(&self, req: HttpRequest, body: &Bytes) -> bool {
+    async fn verify(req: HttpRequest, body: &Bytes) -> bool {
         // First, check that the request is less than twelve hours old
         let date = req.headers().get("date");
         if date.is_none() {
@@ -409,14 +423,48 @@ impl Server {
      * @todo check signatures
      */
     pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes, req: HttpRequest) -> String {
-        let mut server = server.lock().unwrap();
-        if !server.verify(req, &bytes).await {
+        if !Server::verify(req, &bytes).await {
             return String::from("");
         }
+        let config: Config;
+        let followers: Followers;
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
-        server.check_cache().await;
+        {
+            let mut server = server.lock().unwrap();
 
+            // Update cache for instances
+            let current_blocked = server.followers.blocked.clone();
+            let mut followed_instances = Vec::new();
+            server.followers.update_cache(&mut followed_instances).await;
+            let current_blocked: HashSet<_> = current_blocked.iter().collect();
+            let new_blocked: Vec<_> = server
+                .followers
+                .blocked
+                .clone()
+                .into_iter()
+                .filter(|item| !current_blocked.contains(item))
+                .collect();
+            server.note_parser.clear_user(&new_blocked);
+            server.article_parser.clear_user(&new_blocked);
+
+            for actor in followed_instances {
+                // For new instances, get last articles
+                let best_name = Followers::get_best_name(&actor)
+                    .await
+                    .unwrap_or(String::new());
+                let _ = server
+                    .parse_outbox(&Followers::get_outbox(&actor).await.unwrap(), &best_name)
+                    .await;
+            }
+
+            config = server.config.clone();
+            followers = server.followers.clone();
+        }
+
+        Server::check_cache(&config, &followers).await;
+
+        let mut server = server.lock().unwrap();
         if base_obj.object_type == "Follow" {
             let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
             if follow_obj.object
@@ -616,16 +664,16 @@ impl Server {
     }
 
     // Utils
-    fn get_recipe_paths(&self) -> Vec<PathBuf> {
-        fs::read_dir(&self.config.input_dir)
+    fn get_recipe_paths(path: &String) -> Vec<PathBuf> {
+        fs::read_dir(path)
             .unwrap()
             .map(|res| res.map(|e| e.path()))
             .collect::<Result<Vec<_>, io::Error>>()
             .unwrap()
     }
 
-    fn get_images(&self, recipe: String) -> Vec<PathBuf> {
-        let path = format!("{}/{}", self.config.image_dir, recipe);
+    fn get_images(image_dir: &String, recipe: String) -> Vec<PathBuf> {
+        let path = format!("{}/{}", image_dir, recipe);
         if Path::new(&path).exists() {
             return fs::read_dir(&path)
                 .unwrap()
@@ -650,26 +698,17 @@ impl Server {
         sorted
     }
 
-    fn create_cache_directories(&self) -> Result<(), io::Error> {
-        fs::create_dir_all(&self.config.cache_dir)?;
-        fs::create_dir_all(&self.config.output_dir)
-    }
-
     fn write_date_and_article_count_to_cache(
-        &self,
+        config: &Config,
         first_entry_date: u64,
         nb_recipes: usize,
     ) -> Result<(), io::Error> {
         let cache_content = format!("{}\n{}\n", first_entry_date, nb_recipes);
-        fs::write(
-            format!("{}/date_file.txt", self.config.cache_dir),
-            cache_content,
-        )
+        fs::write(format!("{}/date_file.txt", config.cache_dir), cache_content)
     }
 
-    fn read_date_and_article_count_from_cache(&self) -> Result<(u64, usize), ()> {
-        let contents = match fs::read_to_string(format!("{}/date_file.txt", self.config.cache_dir))
-        {
+    fn read_date_and_article_count_from_cache(cache_dir: &String) -> Result<(u64, usize), ()> {
+        let contents = match fs::read_to_string(format!("{}/date_file.txt", cache_dir)) {
             Ok(contents) => contents,
             Err(_) => return Err(()),
         };
@@ -756,34 +795,10 @@ impl Server {
     }
 
     async fn update_cache(
-        &mut self,
+        config: &Config,
         sorted_recipes: Vec<(&PathBuf, SystemTime)>,
         previous_entry_date: u64,
     ) -> Vec<Value> {
-        let current_blocked = self.followers.blocked.clone();
-        let mut followed_instances = Vec::new();
-        self.followers.update_cache(&mut followed_instances).await;
-        let current_blocked: HashSet<_> = current_blocked.iter().collect();
-        let new_blocked: Vec<_> = self
-            .followers
-            .blocked
-            .clone()
-            .into_iter()
-            .filter(|item| !current_blocked.contains(item))
-            .collect();
-        self.note_parser.clear_user(&new_blocked);
-        self.article_parser.clear_user(&new_blocked);
-
-        for actor in followed_instances {
-            // For new instances, get last articles
-            let best_name = Followers::get_best_name(&actor)
-                .await
-                .unwrap_or(String::new());
-            let _ = self
-                .parse_outbox(&Followers::get_outbox(&actor).await.unwrap(), &best_name)
-                .await;
-        }
-
         let chunked_recipes: Vec<Vec<_>> = sorted_recipes
             .chunks(12)
             .map(|chunk| chunk.to_vec())
@@ -811,15 +826,17 @@ impl Server {
                     .unwrap()
                     .as_secs();
                 let mut attachments: Vec<Value> = Vec::new();
-                for image in self.get_images(filename_without_extension.to_string()) {
+                for image in
+                    Server::get_images(&config.image_dir, filename_without_extension.to_string())
+                {
                     attachments.push(json!({
                         "type": "Image",
                         "mediaType": "image/jpeg", // TODO png
-                        "url": format!("https://{}/{}{}/{}", self.config.domain, self.config.static_image_dir, filename_without_extension, image.file_name().unwrap().to_str().unwrap()),
+                        "url": format!("https://{}/{}{}/{}", config.domain, config.static_image_dir, filename_without_extension, image.file_name().unwrap().to_str().unwrap()),
                     }));
                 }
                 let mut tags_value: Vec<Value> = Vec::new();
-                let mut tags = self.config.tags.clone();
+                let mut tags = config.tags.clone();
                 if tags.len() == 0 {
                     let tags_article = re_tags_regex.captures(&markdown).unwrap();
                     let tags_article = tags_article.get(1).map_or("", |m| m.as_str()).to_owned();
@@ -832,7 +849,7 @@ impl Server {
                     tag = tag.replace(" ", "");
                     tags_value.push(json!({
                         "type": "Hashtag",
-                        "href": format!("https://{}/tags/{}", self.config.domain, tag),
+                        "href": format!("https://{}/tags/{}", config.domain, tag),
                         "name": format!("#{}", tag)
                     }));
                 }
@@ -849,38 +866,38 @@ impl Server {
                             "votersCount": "toot:votersCount"
                         }
                     ],
-                    "id": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
+                    "id": format!("https://{}/recettes/{}", config.domain, filename_without_extension),
                     "type": "Create",
-                    "actor": format!("https://{}/users/{}", self.config.domain, self.config.user),
+                    "actor": format!("https://{}/users/{}", config.domain, config.user),
                     "published": published,
                     "to": [
                         "https://www.w3.org/ns/activitystreams#Public"
                     ],
                     "cc": [
-                        format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
+                        format!("https://{}/users/{}/followers", config.domain, config.user),
                     ],
                     "object": {
-                        "id": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
+                        "id": format!("https://{}/recettes/{}", config.domain, filename_without_extension),
                         "type": "Article",
                         "summary": null,
                         "inReplyTo": null,
                         "published": published,
-                        "url": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
-                        "attributedTo": format!("https://{}/users/{}", self.config.domain, self.config.user),
+                        "url": format!("https://{}/recettes/{}", config.domain, filename_without_extension),
+                        "attributedTo": format!("https://{}/users/{}", config.domain, config.user),
                         "to": [
                             "https://www.w3.org/ns/activitystreams#Public"
                         ],
                         "cc": [
-                            format!("https://{}/users/{}/followers", self.config.domain, self.config.user),
+                            format!("https://{}/users/{}/followers", config.domain, config.user),
                         ],
                         "sensitive": false,
-                        "atomUri": format!("https://{}/recettes/{}", self.config.domain, filename_without_extension),
+                        "atomUri": format!("https://{}/recettes/{}", config.domain, filename_without_extension),
                         "content": markdown,
                         "name": match_title.get(1).map_or("Chalut!", |m| m.as_str()).to_owned(),
                         "mediaType": String::from("text/markdown"),
                         "attachment": attachments,
                         "tag": tags_value,
-                        "license": self.config.license
+                        "license": config.license
                     }
                 });
                 if entry_date > previous_entry_date {
@@ -891,7 +908,7 @@ impl Server {
 
             let mut outbox_json = json!({
                 "type": "OrderedCollectionPage",
-                "partOf": format!("https://{}/users/{}/outbox", self.config.domain, self.config.user),
+                "partOf": format!("https://{}/users/{}/outbox", config.domain, config.user),
                 "@context": [
                     "https://www.w3.org/ns/activitystreams",
                     "https://w3id.org/security/v1",
@@ -918,23 +935,23 @@ impl Server {
             if idx_page > 0 {
                 outbox_json["prev"] = serde_json::Value::String(format!(
                     "https://{}/users/{}/outbox?page={}",
-                    self.config.domain,
-                    self.config.user,
+                    config.domain,
+                    config.user,
                     idx_page - 1
                 ));
             }
             if idx_page < max_page {
                 outbox_json["next"] = serde_json::Value::String(format!(
                     "https://{}/users/{}/outbox?page={}",
-                    self.config.domain,
-                    self.config.user,
+                    config.domain,
+                    config.user,
                     idx_page + 1
                 ));
             }
 
             // Cache file
             std::fs::write(
-                format!("{}/{}.json", &self.config.cache_dir, idx_page + 1),
+                format!("{}/{}.json", &config.cache_dir, idx_page + 1),
                 serde_json::to_string_pretty(&outbox_json).unwrap(),
             )
             .unwrap();
@@ -948,9 +965,9 @@ impl Server {
      * @param self
      * @param to_announce   Articles to announce
      */
-    async fn announce_articles(&self, to_annnounce: Vec<Value>) {
+    async fn announce_articles(followers: &Followers, to_annnounce: Vec<Value>) {
         let mut inboxes = HashSet::new();
-        for follower in &self.followers.followers {
+        for follower in &followers.followers {
             inboxes.insert(Followers::get_inbox(&follower, true).await.unwrap());
         }
         // Get inbox from followers
@@ -958,10 +975,7 @@ impl Server {
             // For each article, post to inboxes
             for inbox in &inboxes {
                 println!("Announce {} to {}", article["id"].as_str().unwrap(), inbox);
-                self.followers
-                    .post_inbox(&inbox, article.clone())
-                    .await
-                    .unwrap();
+                followers.post_inbox(&inbox, article.clone()).await.unwrap();
             }
         }
     }
