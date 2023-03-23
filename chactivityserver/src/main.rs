@@ -40,7 +40,7 @@ use crate::server::Server;
 
 use actix_web::{web, web::Data, App, HttpServer};
 use std::fs;
-use std::sync::Mutex;
+use std::sync::{Arc,Mutex};
 
 // TODO add logs
 
@@ -62,7 +62,7 @@ fn main() {
 async fn run_server() {
     let config_str = fs::read_to_string("config.json");
     let config = serde_json::from_str::<Config>(&config_str.unwrap()).unwrap();
-    let followers = Followers::new(config.clone());
+    let followers = Arc::new(Mutex::new(Followers::new(config.clone())));
     let profile = Profile {
         config: config.clone(),
     };

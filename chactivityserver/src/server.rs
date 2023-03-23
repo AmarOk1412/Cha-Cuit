@@ -45,7 +45,7 @@ use std::collections::{BTreeMap, HashSet};
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::SystemTime;
 use std::{fs, io};
 
@@ -104,7 +104,7 @@ pub struct FollowObject {
 #[derive(Debug, Clone)]
 pub struct Server {
     pub config: Config,
-    pub followers: Followers,
+    pub followers: Arc<Mutex<Followers>>,
     pub profile: Profile,
     pub likes: Likes,
     pub note_parser: NoteParser,
@@ -180,7 +180,7 @@ impl Server {
      */
     pub async fn outbox(server: Data<Mutex<Server>>, info: Query<OutboxParams>) -> impl Responder {
         let config: Config;
-        let followers: Followers;
+        let followers: Arc<Mutex<Followers>>;
         {
             let server = server.lock().unwrap();
             config = server.config.clone();
@@ -190,7 +190,7 @@ impl Server {
         if page == 0 {
             return Server::outbox_page_0(&config);
         }
-        Server::check_cache(&config, &followers).await;
+        Server::check_cache(&config, &followers.lock().unwrap()).await;
 
         let mut server = server.lock().unwrap();
         server.outbox_page(page).await
@@ -203,7 +203,8 @@ impl Server {
      */
     pub async fn user_followers(server: Data<Mutex<Server>>) -> impl Responder {
         let server = server.lock().unwrap();
-        server.followers.user_followers()
+        let followers = server.followers.lock().unwrap();
+        followers.user_followers()
     }
 
     /**
@@ -213,7 +214,8 @@ impl Server {
      */
     pub async fn user_following(server: Data<Mutex<Server>>) -> impl Responder {
         let server = server.lock().unwrap();
-        server.followers.user_following()
+        let followers = server.followers.lock().unwrap();
+        followers.user_following()
     }
 
     /**
@@ -429,19 +431,20 @@ impl Server {
             return String::from("");
         }
         let config: Config;
-        let mut followers: Followers;
+        let followers: Arc<Mutex<Followers>>;
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
         {
             let mut server = server.lock().unwrap();
+            let fwrs_arc = server.followers.clone();
+            let mut fwrs = fwrs_arc.lock().unwrap();
 
             // Update cache for instances
-            let current_blocked = server.followers.blocked.clone();
+            let current_blocked = fwrs.blocked.clone();
             let mut followed_instances = Vec::new();
-            server.followers.update_cache(&mut followed_instances).await;
+            fwrs.update_cache(&mut followed_instances).await;
             let current_blocked: HashSet<_> = current_blocked.iter().collect();
-            let new_blocked: Vec<_> = server
-                .followers
+            let new_blocked: Vec<_> = fwrs
                 .blocked
                 .clone()
                 .into_iter()
@@ -464,22 +467,22 @@ impl Server {
             followers = server.followers.clone();
         }
 
-        Server::check_cache(&config, &followers).await;
+        Server::check_cache(&config, &followers.lock().unwrap()).await;
 
         if base_obj.object_type == "Follow" {
             let follow_obj: FollowObject = serde_json::from_str(&body).unwrap();
             if follow_obj.object != format!("https://{}/users/{}", config.domain, config.user) {
                 println!("Unknown object: {}", follow_obj.object);
-            } else if followers.is_blocked(&follow_obj.actor) {
+            } else if followers.lock().unwrap().is_blocked(&follow_obj.actor) {
                 return String::from("{}");
             } else {
                 println!("Get Follow object from {} {}", follow_obj.actor, body);
                 let inbox = Followers::get_inbox(&follow_obj.actor, false)
                     .await
                     .unwrap_or(String::new());
-                followers.accept(&follow_obj, &inbox).await;
+                followers.lock().unwrap().accept(&follow_obj, &inbox).await;
                 if config.auto_follow_back {
-                    followers.send_follow(&follow_obj.actor, &inbox).await;
+                    followers.lock().unwrap().send_follow(&follow_obj.actor, &inbox).await;
                 }
             }
             return String::from("{}");
@@ -496,7 +499,7 @@ impl Server {
             {
                 let follow_obj: FollowObject =
                     serde_json::from_value(object.get("object").unwrap().clone()).unwrap();
-                followers.follow_accepted(&follow_obj.object).await;
+                followers.lock().unwrap().follow_accepted(&follow_obj.object).await;
             }
             return String::from("{}");
         } else if base_obj.object_type == "Like" {
@@ -525,14 +528,14 @@ impl Server {
                 .as_str()
                 .unwrap_or("")
                 .to_owned();
-            if followers.is_blocked(&actor) {
+            if followers.lock().unwrap().is_blocked(&actor) {
                 return String::from("{}");
             }
             let base_obj: Value = base_obj.get("object").unwrap().to_owned();
             let obj_type = base_obj.get("type").unwrap().as_str().unwrap_or("");
             if obj_type == "Note" {
                 // Check that we follow author
-                if followers.is_following(&actor) {
+                if followers.lock().unwrap().is_following(&actor) {
                     let best_name = Followers::get_best_name(&actor)
                         .await
                         .unwrap_or(String::new());
@@ -579,7 +582,7 @@ impl Server {
                 return String::from("{}");
             } else if obj_type == "Article" {
                 // Check that we follow author
-                if followers.is_following(&actor) {
+                if followers.lock().unwrap().is_following(&actor) {
                     let mut server = server.lock().unwrap();
                     server.article_parser.parse(
                         base_obj,
@@ -600,7 +603,7 @@ impl Server {
             if obj_type == "Follow" {
                 let actor = base_object.get("actor").unwrap().as_str().unwrap();
                 println!("Get Unfollow object from {}", actor);
-                followers.unfollow(&actor.to_owned());
+                followers.lock().unwrap().unfollow(&actor.to_owned());
             } else if obj_type == "Like" {
                 let object = base_object
                     .get("object")
