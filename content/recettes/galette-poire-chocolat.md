@@ -13,7 +13,7 @@ thumbnail: "/img/galette-poire-chocolat/galette-poire-chocolat.jpg"
 + 150g de poudre d'amandes
 + 100g de beurre
 + 150g de sucre
-+ 5 moitiés de poire au sirop
++ 5 moitiés de [poire au sirop](/recettes/poire-au-sirop)
 + 3 œufs
 
 # Équipement

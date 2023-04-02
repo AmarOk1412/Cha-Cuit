@@ -15,7 +15,7 @@ thumbnail: "/img/tarte-poire-amandine/tarte-poire-amandine.jpg"
 + 125g poudre d'amandes
 + 125g chocolat
 + 2 œufs
-+ 5 moitiés de poire au sirop
++ 5 moitiés de [poire au sirop](/recettes/poire-au-sirop)
 
 
 # Équipement
