@@ -294,7 +294,7 @@ impl Server {
      * Get public key from a key-id
      */
     async fn get_public_key(key_id: &String) -> Result<String, reqwest::Error> {
-        log::info!("Retrieving publick key: {}", key_id);
+        log::info!("Retrieving public key: {}", key_id);
         let client = reqwest::Client::builder()
             .connection_verbose(true)
             .timeout(Duration::new(10, 0))
@@ -993,7 +993,12 @@ impl Server {
     async fn announce_articles(followers: &Followers, to_annnounce: Vec<Value>) {
         let mut inboxes = HashSet::new();
         for follower in &followers.followers {
-            inboxes.insert(Followers::get_inbox(&follower, true).await.unwrap());
+            let inbox = Followers::get_inbox(&follower, true)
+                .await
+                .unwrap_or(String::new());
+            if inbox.len() != 0 {
+                inboxes.insert(inbox);
+            }
         }
         // Get inbox from followers
         for article in &to_annnounce {
