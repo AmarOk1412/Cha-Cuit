@@ -35,6 +35,7 @@ use actix_web::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{offset::Utc, DateTime};
+use core::time::Duration;
 use http_sig::{HttpSignatureVerify, RsaSha256Verify};
 use openssl::sha::Sha256;
 use regex::Regex;
@@ -126,12 +127,12 @@ impl Server {
         server: Data<Mutex<Server>>,
         info: Query<WebFingerRequest>,
     ) -> impl Responder {
+        log::info!("GET WebFinger request: {}", info.resource);
         let config: Config;
         {
             let server = server.lock().unwrap();
             config = server.config.clone();
         }
-        log::info!("GET WebFinger request: {}", info.resource);
         if info.resource == format!("acct:{}@{}", config.user, config.domain) {
             return HttpResponse::Ok().json(json!({
                 "subject": info.resource,
@@ -162,8 +163,8 @@ impl Server {
      * @return the profile page
      */
     pub async fn profile(server: Data<Mutex<Server>>) -> impl Responder {
-        let server = server.lock().unwrap();
         log::info!("GET Profile");
+        let server = server.lock().unwrap();
         server.profile.profile()
     }
 
@@ -203,9 +204,9 @@ impl Server {
      * @return json containing a collection of followers
      */
     pub async fn user_followers(server: Data<Mutex<Server>>) -> impl Responder {
+        log::info!("GET Followers");
         let server = server.lock().unwrap();
         let followers = server.followers.lock().unwrap();
-        log::info!("GET Followers");
         followers.user_followers()
     }
 
@@ -215,9 +216,9 @@ impl Server {
      * @return json containing a collection of following
      */
     pub async fn user_following(server: Data<Mutex<Server>>) -> impl Responder {
+        log::info!("GET Following users");
         let server = server.lock().unwrap();
         let followers = server.followers.lock().unwrap();
-        log::info!("GET Following users");
         followers.user_following()
     }
 
@@ -226,6 +227,7 @@ impl Server {
      * @param page
      */
     fn outbox_page_0(config: &Config) -> HttpResponse {
+        log::info!("GET Outbox");
         let recipes = Server::get_recipe_paths(&config.input_dir);
         let max_page: usize = (recipes.len() / 12) + 1;
         // If no page provided, then describe the other pages
@@ -237,7 +239,6 @@ impl Server {
             "first": format!("https://{}/users/{}/outbox?page=1", config.domain, config.user),
             "last": format!("https://{}/users/{}/outbox?page={}", config.domain, config.user, max_page),
         });
-        log::info!("GET Outbox");
         return HttpResponse::Ok().json(outbox_json);
     }
 
@@ -246,11 +247,11 @@ impl Server {
      * @param page
      */
     async fn outbox_page(&mut self, page: usize) -> HttpResponse {
+        log::info!("GET Outbox page: {}", page);
         // Read the cache for the requested page
         let content = self
             .read_cache_for_page(page)
             .unwrap_or_else(|_| "{}".to_owned());
-        log::info!("GET Outbox page: {}", page);
         HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
     }
 
@@ -294,7 +295,11 @@ impl Server {
      */
     async fn get_public_key(key_id: &String) -> Result<String, reqwest::Error> {
         log::info!("Retrieving publick key: {}", key_id);
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .connection_verbose(true)
+            .timeout(Duration::new(10, 0))
+            .connect_timeout(Duration::new(10, 0))
+            .build()?;
         let body = client
             .get(key_id)
             .header(reqwest::header::ACCEPT, "application/activity+json")

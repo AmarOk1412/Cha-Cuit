@@ -26,6 +26,7 @@ use crate::config::Config;
 use crate::server::FollowObject;
 
 use actix_web::{HttpResponse, Responder};
+use core::time::Duration;
 use http_sig::*;
 use rand::{distributions::Alphanumeric, Rng};
 use serde_json::json;
@@ -191,6 +192,8 @@ impl Followers {
     ) -> Result<(), reqwest::Error> {
         let client = reqwest::Client::builder()
             .connection_verbose(true)
+            .timeout(Duration::new(10, 0))
+            .connect_timeout(Duration::new(10, 0))
             .build()?;
 
         let config = SigningConfig::new(
