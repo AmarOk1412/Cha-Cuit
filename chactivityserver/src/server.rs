@@ -112,6 +112,11 @@ pub struct Server {
     pub article_parser: ArticleParser,
 }
 
+pub struct ServerData {
+    pub server: Arc<Mutex<Server>>,
+    pub config: Config,
+}
+
 impl Server {
     /**
      * Follow https://www.rfc-editor.org/rfc/rfc7033 for WebFinger Discovery
@@ -124,15 +129,12 @@ impl Server {
      * @return webfinger json response
      */
     pub async fn webfinger(
-        server: Data<Mutex<Server>>,
+        data: Data<ServerData>,
         info: Query<WebFingerRequest>,
     ) -> impl Responder {
         log::info!("GET WebFinger request: {}", info.resource);
-        let config: Config;
-        {
-            let server = server.lock().unwrap();
-            config = server.config.clone();
-        }
+        let config = data.config.clone();
+
         if info.resource == format!("acct:{}@{}", config.user, config.domain) {
             return HttpResponse::Ok().json(json!({
                 "subject": info.resource,
@@ -162,9 +164,9 @@ impl Server {
      * @param server
      * @return the profile page
      */
-    pub async fn profile(server: Data<Mutex<Server>>) -> impl Responder {
+    pub async fn profile(data: Data<ServerData>) -> impl Responder {
         log::info!("GET Profile");
-        let server = server.lock().unwrap();
+        let server = data.server.lock().unwrap();
         server.profile.profile()
     }
 
@@ -180,11 +182,11 @@ impl Server {
      * @param info      Web request parameters (contains a page number)
      * @return Outbox' json
      */
-    pub async fn outbox(server: Data<Mutex<Server>>, info: Query<OutboxParams>) -> impl Responder {
+    pub async fn outbox(data: Data<ServerData>, info: Query<OutboxParams>) -> impl Responder {
         let config: Config;
         let followers: Arc<Mutex<Followers>>;
         {
-            let server = server.lock().unwrap();
+            let server = data.server.lock().unwrap();
             config = server.config.clone();
             followers = server.followers.clone();
         }
@@ -194,7 +196,7 @@ impl Server {
         }
         Server::check_cache(&config, &followers.lock().unwrap()).await;
 
-        let mut server = server.lock().unwrap();
+        let mut server = data.server.lock().unwrap();
         server.outbox_page(page).await
     }
 
@@ -203,9 +205,9 @@ impl Server {
      * @param server
      * @return json containing a collection of followers
      */
-    pub async fn user_followers(server: Data<Mutex<Server>>) -> impl Responder {
+    pub async fn user_followers(data: Data<ServerData>) -> impl Responder {
         log::info!("GET Followers");
-        let server = server.lock().unwrap();
+        let server = data.server.lock().unwrap();
         let followers = server.followers.lock().unwrap();
         followers.user_followers()
     }
@@ -215,9 +217,9 @@ impl Server {
      * @param server
      * @return json containing a collection of following
      */
-    pub async fn user_following(server: Data<Mutex<Server>>) -> impl Responder {
+    pub async fn user_following(data: Data<ServerData>) -> impl Responder {
         log::info!("GET Following users");
-        let server = server.lock().unwrap();
+        let server = data.server.lock().unwrap();
         let followers = server.followers.lock().unwrap();
         followers.user_following()
     }
@@ -1005,7 +1007,7 @@ impl Server {
             // For each article, post to inboxes
             for inbox in &inboxes {
                 println!("Announce {} to {}", article["id"].as_str().unwrap(), inbox);
-                followers.post_inbox(&inbox, article.clone()).await;
+                let _ = followers.post_inbox(&inbox, article.clone()).await;
             }
         }
     }

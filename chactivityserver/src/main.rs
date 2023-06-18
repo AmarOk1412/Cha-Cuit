@@ -36,7 +36,7 @@ use crate::follow::Followers;
 use crate::likes::Likes;
 use crate::noteparser::NoteParser;
 use crate::profile::Profile;
-use crate::server::Server;
+use crate::server::{Server, ServerData};
 
 use actix_web::{web, web::Data, App, HttpServer};
 use std::fs;
@@ -67,7 +67,7 @@ async fn run_server() {
     let likes = Likes::new(config.clone());
     let note_parser = NoteParser::new(config.clone());
     let article_parser = ArticleParser::new(config.clone());
-    let server = Data::new(Mutex::new(Server {
+    let server = Arc::new(Mutex::new(Server {
         config: config.clone(),
         followers,
         profile,
@@ -75,10 +75,14 @@ async fn run_server() {
         note_parser,
         article_parser,
     }));
+    let data = Data::new(ServerData {
+        server: server.clone(),
+        config: config.clone()
+    });
     log::info!("Launching server on: {}", config.bind_address);
     HttpServer::new(move || {
         App::new()
-            .app_data(server.clone())
+            .app_data(data.clone())
             .route("/.well-known/webfinger", web::get().to(Server::webfinger))
             .route("/users/chef", web::get().to(Server::profile))
             .route("/users/chef/inbox", web::post().to(Server::inbox))
