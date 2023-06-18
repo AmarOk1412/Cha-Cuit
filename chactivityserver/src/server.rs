@@ -131,6 +131,7 @@ impl Server {
             let server = server.lock().unwrap();
             config = server.config.clone();
         }
+        log::info!("GET WebFinger request: {}", info.resource);
         if info.resource == format!("acct:{}@{}", config.user, config.domain) {
             return HttpResponse::Ok().json(json!({
                 "subject": info.resource,
@@ -162,6 +163,7 @@ impl Server {
      */
     pub async fn profile(server: Data<Mutex<Server>>) -> impl Responder {
         let server = server.lock().unwrap();
+        log::info!("GET Profile");
         server.profile.profile()
     }
 
@@ -169,7 +171,6 @@ impl Server {
      * https://www.w3.org/TR/activitypub/#outbox
      * Contains all articles of the website
      * @todo likes
-     * @todo images from articles
      * if page isn't provide, a description of the outbox is provided
      * else, a json of 12 articles is sent.
      * To avoid some computation, pages are cached (the cache is invalidated if
@@ -204,6 +205,7 @@ impl Server {
     pub async fn user_followers(server: Data<Mutex<Server>>) -> impl Responder {
         let server = server.lock().unwrap();
         let followers = server.followers.lock().unwrap();
+        log::info!("GET Followers");
         followers.user_followers()
     }
 
@@ -215,6 +217,7 @@ impl Server {
     pub async fn user_following(server: Data<Mutex<Server>>) -> impl Responder {
         let server = server.lock().unwrap();
         let followers = server.followers.lock().unwrap();
+        log::info!("GET Following users");
         followers.user_following()
     }
 
@@ -234,6 +237,7 @@ impl Server {
             "first": format!("https://{}/users/{}/outbox?page=1", config.domain, config.user),
             "last": format!("https://{}/users/{}/outbox?page={}", config.domain, config.user, max_page),
         });
+        log::info!("GET Outbox");
         return HttpResponse::Ok().json(outbox_json);
     }
 
@@ -246,6 +250,7 @@ impl Server {
         let content = self
             .read_cache_for_page(page)
             .unwrap_or_else(|_| "{}".to_owned());
+        log::info!("GET Outbox page: {}", page);
         HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
     }
 
@@ -263,9 +268,9 @@ impl Server {
 
         // Create the cache directories if they do not exist
         fs::create_dir_all(&config.cache_dir)
-            .unwrap_or_else(|_| println!("Failed to create directories"));
+            .unwrap_or_else(|_| log::error!("Failed to create directories"));
         fs::create_dir_all(&config.output_dir)
-            .unwrap_or_else(|_| println!("Failed to create directories"));
+            .unwrap_or_else(|_| log::error!("Failed to create directories"));
 
         let (file_date, file_nb_articles) =
             Server::read_date_and_article_count_from_cache(&config.cache_dir).unwrap_or((0, 0));
@@ -273,7 +278,7 @@ impl Server {
         // Get the date of the first entry
         let first_entry_date = Server::get_first_entry_date(&sorted_recipes);
         if first_entry_date > file_date || file_nb_articles != recipes.len() {
-            println!("Refreshing cache.");
+            log::warn!("Refreshing cache.");
             let to_announce = Server::update_cache(&config, sorted_recipes, file_date).await;
             let _ = Server::write_date_and_article_count_to_cache(
                 &config,
@@ -288,6 +293,7 @@ impl Server {
      * Get public key from a key-id
      */
     async fn get_public_key(key_id: &String) -> Result<String, reqwest::Error> {
+        log::info!("Retrieving publick key: {}", key_id);
         let client = reqwest::Client::new();
         let body = client
             .get(key_id)
@@ -298,15 +304,18 @@ impl Server {
             .await?;
         let obj = serde_json::from_str(&body);
         if !obj.is_ok() {
+            log::warn!("Incorrect object for: {}", key_id);
             return Ok(String::new());
         }
         let object: Value = obj.unwrap();
         let pk = object.get("publicKey");
         if pk.is_none() {
+            log::warn!("Incorrect object for: {}", key_id);
             return Ok(String::new());
         }
         let pk = pk.unwrap().get("publicKeyPem");
         if pk.is_none() {
+            log::warn!("Incorrect object for: {}", key_id);
             return Ok(String::new());
         }
         Ok(pk.unwrap().as_str().unwrap().to_owned())
@@ -316,6 +325,7 @@ impl Server {
         // First, check that the request is less than twelve hours old
         let date = req.headers().get("date");
         if date.is_none() {
+            log::error!("Verification Failed: header date is missing");
             return false;
         }
         let date = date.unwrap().to_str().ok().unwrap();
@@ -323,6 +333,7 @@ impl Server {
         let now = Utc::now();
         let diff = now - date;
         if diff.num_hours() > 12 {
+            log::error!("Verification Failed: too old request");
             return false;
         }
 
@@ -341,7 +352,7 @@ impl Server {
                 })
                 .collect::<Option<BTreeMap<_, _>>>()
                 .or_else(|| {
-                    println!("Verification Failed: Unable to parse 'Signature' header");
+                    log::error!("Verification Failed: Unable to parse 'Signature' header");
                     None
                 })
                 .unwrap();
@@ -349,7 +360,7 @@ impl Server {
                 .get("keyId")
                 .or_else(|| {
                     // TODO better logger
-                    println!(
+                    log::error!(
                         "Verification Failed: Missing required 'keyId' in 'Authorization' header"
                     );
                     None
@@ -364,7 +375,7 @@ impl Server {
                 .unwrap();
             let algorithm_name = auth_args.get("algorithm").copied().unwrap();
             if algorithm_name != "rsa-sha256" && algorithm_name != "hs2019" {
-                println!("Verification Failed: Invalid algorithm {}", algorithm_name);
+                log::error!("Verification Failed: Invalid algorithm {}", algorithm_name);
                 return false;
             }
             let digest_header = req.headers().get("digest").unwrap().to_str().ok().unwrap();
@@ -394,6 +405,7 @@ impl Server {
                 .await
                 .unwrap_or(String::new());
             if pk == "" {
+                log::error!("Verification Failed: no public key for: {}", key_id);
                 return false;
             }
             // TODO cache with expiration
@@ -405,26 +417,24 @@ impl Server {
             let hash = sha256.finish();
             let digest: String = general_purpose::STANDARD_NO_PAD.encode(hash);
             if digest == digest_header {
-                println!("Invalid Digest from {}", key_id);
+                log::error!("Verification Failed: Invalid Digest from {}", key_id);
                 return false;
             }
 
             let verificator = RsaSha256Verify::new_pem(pk.as_bytes()).unwrap();
             let res = verificator.http_verify(to_sign.join("\n").as_bytes(), &*provided_signature);
             if !res {
-                println!("Invalid Signature from {}", key_id);
+                log::error!("Verification Failed: Invalid Signature from {}", key_id);
             }
             return res;
         }
-        println!("No signature header");
+        log::error!("Verification Failed: no signature found");
         false
     }
 
     /**
      * User's inbox. This will receive all object from the fediverse (articles/messages/follow requests/likes)
      * For now, only follow requests are supported
-     * @todo receive articles
-     * @todo check signatures
      */
     pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes, req: HttpRequest) -> String {
         if !Server::verify(req, &bytes).await {
@@ -482,7 +492,11 @@ impl Server {
                     .unwrap_or(String::new());
                 followers.lock().unwrap().accept(&follow_obj, &inbox).await;
                 if config.auto_follow_back {
-                    followers.lock().unwrap().send_follow(&follow_obj.actor, &inbox).await;
+                    followers
+                        .lock()
+                        .unwrap()
+                        .send_follow(&follow_obj.actor, &inbox)
+                        .await;
                 }
             }
             return String::from("{}");
@@ -499,7 +513,11 @@ impl Server {
             {
                 let follow_obj: FollowObject =
                     serde_json::from_value(object.get("object").unwrap().clone()).unwrap();
-                followers.lock().unwrap().follow_accepted(&follow_obj.object).await;
+                followers
+                    .lock()
+                    .unwrap()
+                    .follow_accepted(&follow_obj.object)
+                    .await;
             }
             return String::from("{}");
         } else if base_obj.object_type == "Like" {

@@ -40,9 +40,7 @@ use crate::server::Server;
 
 use actix_web::{web, web::Data, App, HttpServer};
 use std::fs;
-use std::sync::{Arc,Mutex};
-
-// TODO add logs
+use std::sync::{Arc, Mutex};
 
 fn main() {
     // Init logging
@@ -77,6 +75,7 @@ async fn run_server() {
         note_parser,
         article_parser,
     }));
+    log::info!("Launching server on: {}", config.bind_address);
     HttpServer::new(move || {
         App::new()
             .app_data(server.clone())
