@@ -1005,7 +1005,7 @@ impl Server {
             // For each article, post to inboxes
             for inbox in &inboxes {
                 println!("Announce {} to {}", article["id"].as_str().unwrap(), inbox);
-                followers.post_inbox(&inbox, article.clone()).await.unwrap();
+                followers.post_inbox(&inbox, article.clone()).await;
             }
         }
     }
