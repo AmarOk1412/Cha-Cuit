@@ -69,7 +69,6 @@ async fn run_server() {
     let article_parser = ArticleParser::new(config.clone());
     let server = Arc::new(Mutex::new(Server {
         config: config.clone(),
-        followers,
         profile,
         likes,
         note_parser,
@@ -77,7 +76,8 @@ async fn run_server() {
     }));
     let data = Data::new(ServerData {
         server: server.clone(),
-        config: config.clone()
+        config: config.clone(),
+        followers: followers,
     });
     log::info!("Launching server on: {}", config.bind_address);
     HttpServer::new(move || {

@@ -105,7 +105,6 @@ pub struct FollowObject {
 #[derive(Debug, Clone)]
 pub struct Server {
     pub config: Config,
-    pub followers: Arc<Mutex<Followers>>,
     pub profile: Profile,
     pub likes: Likes,
     pub note_parser: NoteParser,
@@ -115,6 +114,7 @@ pub struct Server {
 pub struct ServerData {
     pub server: Arc<Mutex<Server>>,
     pub config: Config,
+    pub followers: Arc<Mutex<Followers>>,
 }
 
 impl Server {
@@ -186,9 +186,8 @@ impl Server {
         let config: Config;
         let followers: Arc<Mutex<Followers>>;
         {
-            let server = data.server.lock().unwrap();
-            config = server.config.clone();
-            followers = server.followers.clone();
+            config = data.config.clone();
+            followers = data.followers.clone();
         }
         let page: usize = info.page.unwrap_or(0) as usize;
         if page == 0 {
@@ -207,8 +206,7 @@ impl Server {
      */
     pub async fn user_followers(data: Data<ServerData>) -> impl Responder {
         log::info!("GET Followers");
-        let server = data.server.lock().unwrap();
-        let followers = server.followers.lock().unwrap();
+        let followers = data.followers.lock().unwrap();
         followers.user_followers()
     }
 
@@ -219,8 +217,7 @@ impl Server {
      */
     pub async fn user_following(data: Data<ServerData>) -> impl Responder {
         log::info!("GET Following users");
-        let server = data.server.lock().unwrap();
-        let followers = server.followers.lock().unwrap();
+        let followers = data.followers.lock().unwrap();
         followers.user_following()
     }
 
@@ -443,17 +440,16 @@ impl Server {
      * User's inbox. This will receive all object from the fediverse (articles/messages/follow requests/likes)
      * For now, only follow requests are supported
      */
-    pub async fn inbox(server: Data<Mutex<Server>>, bytes: Bytes, req: HttpRequest) -> String {
+    pub async fn inbox(data: Data<ServerData>, bytes: Bytes, req: HttpRequest) -> String {
         if !Server::verify(req, &bytes).await {
             return String::from("");
         }
-        let config: Config;
-        let followers: Arc<Mutex<Followers>>;
         let body = String::from_utf8(bytes.to_vec()).unwrap();
         let base_obj: ActivityPubRequest = serde_json::from_str(&body).unwrap();
+        let server: Arc<Mutex<Server>>;
         {
-            let mut server = server.lock().unwrap();
-            let fwrs_arc = server.followers.clone();
+            server = data.server.clone();
+            let fwrs_arc = data.followers.clone();
             let mut fwrs = fwrs_arc.lock().unwrap();
 
             // Update cache for instances
@@ -467,22 +463,22 @@ impl Server {
                 .into_iter()
                 .filter(|item| !current_blocked.contains(item))
                 .collect();
-            server.note_parser.clear_user(&new_blocked);
-            server.article_parser.clear_user(&new_blocked);
+            server.lock().unwrap().note_parser.clear_user(&new_blocked);
+            server.lock().unwrap().article_parser.clear_user(&new_blocked);
 
             for actor in followed_instances {
                 // For new instances, get last articles
                 let best_name = Followers::get_best_name(&actor)
                     .await
                     .unwrap_or(String::new());
-                let _ = server
+                let _ = server.lock().unwrap()
                     .parse_outbox(&Followers::get_outbox(&actor).await.unwrap(), &best_name)
                     .await;
             }
 
-            config = server.config.clone();
-            followers = server.followers.clone();
         }
+        let config = data.config.clone();
+        let followers = data.followers.clone();
 
         Server::check_cache(&config, &followers.lock().unwrap()).await;
 
