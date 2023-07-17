@@ -303,10 +303,15 @@ impl Server {
             .get(key_id)
             .header(reqwest::header::ACCEPT, "application/activity+json")
             .send()
-            .await?
-            .text()
-            .await?;
-        let obj = serde_json::from_str(&body);
+            .await;
+        if !body.is_ok() {
+            return Ok(String::new());
+        }
+        let body = body.unwrap().text().await;
+        if !body.is_ok() {
+            return Ok(String::new());
+        }
+        let obj = serde_json::from_str(&body.unwrap());
         if !obj.is_ok() {
             log::warn!("Incorrect object for: {}", key_id);
             return Ok(String::new());
