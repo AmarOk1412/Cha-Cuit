@@ -363,7 +363,6 @@ impl Server {
             let key_id = *auth_args
                 .get("keyId")
                 .or_else(|| {
-                    // TODO better logger
                     log::error!(
                         "Verification Failed: Missing required 'keyId' in 'Authorization' header"
                     );
@@ -373,7 +372,7 @@ impl Server {
             let provided_signature = auth_args
                 .get("signature")
                 .or_else(|| {
-                    //info!("Verification Failed: Missing required 'signature' in 'Authorization' header");
+                    log::error!("Verification Failed: Missing required 'signature' in 'Authorization' header");
                     None
                 })
                 .unwrap();

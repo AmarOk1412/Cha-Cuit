@@ -46,7 +46,7 @@ donner la forme du cookie voulue. Disposer sur la plaque de cuisson.
 ![Prêt à enfourner](/img/cookies/cookies-step-4.jpg)
 
 
-5. Enfouter 15 minutes à 180°C.
+5. Enfourner 15 minutes à 180°C.
 6. Laisser refroidir !
 
 
