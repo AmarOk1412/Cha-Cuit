@@ -306,7 +306,11 @@ impl Followers {
                 }
             }
         }
-        Ok(object["inbox"].as_str().unwrap().to_owned())
+        let inbox = object["inbox"].as_str();
+        if inbox.is_some() {
+            return Ok(inbox.unwrap().to_owned());
+        }
+        Ok(String::new())
     }
 
     /**
