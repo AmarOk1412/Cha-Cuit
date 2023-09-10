@@ -304,7 +304,7 @@ impl Server {
             .header(reqwest::header::ACCEPT, "application/activity+json")
             .send()
             .await;
-        if body.is_ok() {
+        if !body.is_ok() {
             return Ok(String::new());
         }
         let body = body.unwrap().text().await;
