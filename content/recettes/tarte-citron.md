@@ -9,7 +9,7 @@ thumbnail: "/img/tarte-citron/tarte-citron.jpg"
 # Ingrédients
 
 + [1 pâte sablée](/recettes/pate-sablee)
-+ 2 citrons
++ 3 citrons
 + 4 œufs
 + 80g de beurre
 + 440g de sucre
@@ -28,20 +28,20 @@ thumbnail: "/img/tarte-citron/tarte-citron.jpg"
 
 # Préparation
 
-1. Prélever le zeste du citron.
-2. Mélanger les jaunes d'œufs, sucre et jus de citron dans un bol au bain marie. Mélanger
+1. Dans une casserole, mélanger 310g de sucre et la fécule.
+2. Incorporer les jaunes d'œufs, le zeste (en garder pour l'étape 9), le jus de citron.
+3. Ajouter 10cl d'eau et porter à ébulition tout en remuant.
+4. Le tout devrait se solidifier assez vite. Ajouter le beurre jusqu'à ce qu'il fonde.
+5. Verser dans la croute, couvrir d'une pellicule plastique et laisser tiédir au réfrigérateur.
 
-![Le lemon curd](/img/tarte-citron/tarte-citron-step-2.jpg)
+![Le lemon curd](/img/tarte-citron/tarte-citron-step-5.jpg)
 
-3. Quand la solution frétille (au bout de quelques minutes), ajouter la fécule et continuer
-à mélanger jusqu'à épaississement. Ajouter le beurre et laisser refroidir 2 heures (recouvert).
-4. Ajouter à la pâte sablée. Bien lisser.
-5. Pour la meringue, monter les blancs en neige avec une pincée de sel. Incorporer le sucre pendant que vous fouettez.
-6. À l'aide d'une poche à douille, décorer la tarte.
+6. Pour la meringue, monter les blancs en neige avec une pincée de sel. Incorporer le sucre pendant que vous fouettez.
+7. À l'aide d'une poche à douille, décorer la tarte.
 
 ![On décore](/img/tarte-citron/tarte-citron-step-6.jpg)
 
-7. Enfourner 5 minutes à 200°C.
-8. Raper le zeste de citron par dessus la tarte.
+8. Enfourner 5 minutes à 200°C.
+9. Raper le zeste de citron par dessus la tarte.
 
 # Notes
