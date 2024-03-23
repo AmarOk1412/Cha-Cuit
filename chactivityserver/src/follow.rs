@@ -56,6 +56,7 @@ impl Followers {
         let mut following = Vec::new();
         let mut pending_following = Vec::new();
         let mut blocked = Vec::new();
+
         let path = format!("{}/followers.json", config.cache_dir);
         if Path::new(&path).exists() {
             followers =
@@ -102,7 +103,8 @@ impl Followers {
             "totalItems": self.following.len(),
             "type": "OrderedCollection"
         });
-        HttpResponse::Ok().json(following_json)
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
+        HttpResponse::Ok().content_type(activity_pub_mime).json(following_json)
     }
 
     /**
@@ -121,7 +123,8 @@ impl Followers {
             "totalItems": self.followers.len(),
             "type": "OrderedCollection"
         });
-        HttpResponse::Ok().json(followers_json)
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
+        HttpResponse::Ok().content_type(activity_pub_mime).json(followers_json)
     }
 
     /**

@@ -134,9 +134,10 @@ impl Server {
     ) -> impl Responder {
         log::info!("GET WebFinger request: {}", info.resource);
         let config = data.config.clone();
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
 
         if info.resource == format!("acct:{}@{}", config.user, config.domain) {
-            return HttpResponse::Ok().json(json!({
+            return HttpResponse::Ok().content_type(activity_pub_mime).json(json!({
                 "subject": info.resource,
                 "aliases": [
                     format!("https://{}/{}/", config.domain, config.profile),
@@ -155,7 +156,7 @@ impl Server {
                 ]
             }));
         }
-        HttpResponse::Ok().json(json!({}))
+        HttpResponse::Ok().content_type(activity_pub_mime).json(json!({}))
     }
 
     /**
@@ -238,7 +239,8 @@ impl Server {
             "first": format!("https://{}/users/{}/outbox?page=1", config.domain, config.user),
             "last": format!("https://{}/users/{}/outbox?page={}", config.domain, config.user, max_page),
         });
-        return HttpResponse::Ok().json(outbox_json);
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
+        return HttpResponse::Ok().content_type(activity_pub_mime).json(outbox_json);
     }
 
     /**
@@ -247,11 +249,14 @@ impl Server {
      */
     async fn outbox_page(&mut self, page: usize) -> HttpResponse {
         log::info!("GET Outbox page: {}", page);
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
+
         // Read the cache for the requested page
         let content = self
             .read_cache_for_page(page)
             .unwrap_or_else(|_| "{}".to_owned());
-        HttpResponse::Ok().json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
+
+        HttpResponse::Ok().content_type(activity_pub_mime).json(serde_json::from_str::<serde_json::Value>(&content).unwrap())
     }
 
     /**
@@ -687,7 +692,8 @@ impl Server {
      */
     pub async fn likes(server: Data<Mutex<Server>>, info: Query<LikesRequest>) -> impl Responder {
         let server = server.lock().unwrap();
-        HttpResponse::Ok().json(server.likes.data(&info.object, &info.wanted_type))
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
+        HttpResponse::Ok().content_type(activity_pub_mime).json(server.likes.data(&info.object, &info.wanted_type))
     }
 
     // Utils

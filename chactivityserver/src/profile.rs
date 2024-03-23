@@ -37,9 +37,10 @@ pub struct Profile {
 
 impl Profile {
     pub fn profile(&self) -> impl Responder {
+        let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
         let metadata = fs::metadata("config.json");
         if metadata.is_err() {
-            return HttpResponse::Ok().json(json!({}));
+            return HttpResponse::Ok().content_type(activity_pub_mime).json(json!({}));
         }
         let creation_date = metadata.unwrap().created().unwrap();
         let datetime: DateTime<Utc> = creation_date.into();
@@ -91,7 +92,7 @@ impl Profile {
             "url": format!("https://{}/{}", self.config.domain, self.config.avatar)
           }
         });
-        HttpResponse::Ok().json(profile_json)
+        HttpResponse::Ok().content_type(activity_pub_mime).json(profile_json)
     }
 
     fn mastodon_value() -> Value {
