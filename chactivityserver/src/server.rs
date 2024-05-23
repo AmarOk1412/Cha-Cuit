@@ -690,8 +690,8 @@ impl Server {
      * @param info         object is the url of the recipe and wanted_type (like/boost)
      * @return the array of people who boost/like the recipe
      */
-    pub async fn likes(server: Data<Mutex<Server>>, info: Query<LikesRequest>) -> impl Responder {
-        let server = server.lock().unwrap();
+    pub async fn likes(data: Data<ServerData>, info: Query<LikesRequest>) -> impl Responder {
+        let server = data.server.lock().unwrap();
         let activity_pub_mime = "application/activity+json".parse::<mime::Mime>().unwrap();
         HttpResponse::Ok().content_type(activity_pub_mime).json(server.likes.data(&info.object, &info.wanted_type))
     }
