@@ -1,6 +1,6 @@
 ---
 title: Nougat
-date: 2023-02-08
+date: 2024-08-14
 tags: ["sucré", "desserts", "pâtisserie"]
 duration: 4h
 thumbnail: "/img/nougat/nougat.jpg"
@@ -44,7 +44,7 @@ thumbnail: "/img/nougat/nougat.jpg"
 ![La montée](/img/nougat/nougat-step-4.jpg)
 
 
-5. Faire cuire le sucre à grand feu. Monter à 144°C (Recette originale: 143 pour un nougat mou ou 145 pour un nougat dur).
+5. Faire cuire le sucre à grand feu. Monter à 145°C (Recette originale: 143 pour un nougat mou ou 145 pour un nougat dur).
 
 ![La cuisson](/img/nougat/nougat-step-5.jpg)
 
@@ -62,5 +62,3 @@ thumbnail: "/img/nougat/nougat.jpg"
 # Notes
 
 1. Recette originale: https://axelle.me/2022/12/18/nougat/
-2. Mon plat était trop grand, donc le nougat pas assez épais. (18x18 est surement idéal)
-3. 144.5°C semble être trop liquide. Soit trop de blanc, soit faire cuire un peu plus longtemps.
