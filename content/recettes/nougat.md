@@ -6,8 +6,6 @@ duration: 4h
 thumbnail: "/img/nougat/nougat.jpg"
 ---
 
-*Ceci est une semi-réussite*
-
 # Ingrédients
 
 + 300g d’amandes

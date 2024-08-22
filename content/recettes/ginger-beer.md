@@ -6,8 +6,6 @@ duration: 1w
 thumbnail: "/img/ginger-beer/ginger-beer.jpg"
 ---
 
-*Ceci est une semi-réussite*
-
 # Ingrédients
 
 + 150g gingembre
