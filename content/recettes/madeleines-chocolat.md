@@ -38,5 +38,4 @@ thumbnail: "/img/madeleines-chocolat/madeleines-chocolat.jpg"
 7. Cuire 5min à 220°C puis 7 minutes à 200°C.
 ![Les madeleines chocolats](/img/madeleines-chocolat/madeleines-chocolat-step-7.jpg)
 
-
 # Notes
