@@ -10,7 +10,7 @@ thumbnail: "/img/gnocchis-courge/gnocchis-courge.jpg"
 # Ingrédients
 
 + 1/2 courge butternut
-+ 300g de garine
++ 300g de farine
 + Ail semoule
 + Sel
 + Poivre
