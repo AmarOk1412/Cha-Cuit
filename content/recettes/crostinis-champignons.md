@@ -1,8 +1,9 @@
 ---
 title: Crostinis champignons
-date: 2022-12-06
+date: 2024-12-28
 tags: ["vegan", "mushroom", "apéritif"]
 duration: 30min
+thumbnail: "/img/crostinis-champignons/crostinis-champignons.jpg"
 ---
 
 # Ingrédients
