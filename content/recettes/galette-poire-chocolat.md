@@ -1,6 +1,6 @@
 ---
 title: Galette des rois (poire/chocolat)
-date: 2023-01-07
+date: 2025-01-29
 tags: ["sucré", "chocolat", "poire", "pâtisserie", "desserts", "tartes"]
 duration: 1h
 thumbnail: "/img/galette-poire-chocolat/galette-poire-chocolat.jpg"
@@ -34,28 +34,34 @@ reste de la pâte feuilletée comme seconde pâte en bas.
 
 ![Le fond de tarte](/img/galette-poire-chocolat/galette-poire-chocolat-step-3.jpg)
 
-4. Étaler la pâte d'amandes sur le pâte du dessous.
+4. Ajouter les poires coupées en petits dés.
 
-![Avec les amandes](/img/galette-poire-chocolat/galette-poire-chocolat-step-4.jpg)
+![Avec les poires](/img/galette-poire-chocolat/galette-poire-chocolat-step-3.jpg)
 
-5. Ajouter les poires coupées en petits dés.
+5. Ajouter les morceaux de chocolat
 
-![Puis les poires](/img/galette-poire-chocolat/galette-poire-chocolat-step-5.jpg)
+![Puis le chocolat](/img/galette-poire-chocolat/galette-poire-chocolat-step-5.jpg)
 
-6. Ajouter les morceaux de chocolat sur le dessus
+6. Ajouter la frangipane
 
-![Puis le chocolat](/img/galette-poire-chocolat/galette-poire-chocolat-step-6.jpg)
+![Avec les amandes](/img/galette-poire-chocolat/galette-poire-chocolat-step-6.jpg)
+
 
 7. Fermer avec le second disque (appuyer sur les bords)
 
 ![On ferme](/img/galette-poire-chocolat/galette-poire-chocolat-step-7.jpg)
 
 8. Dessiner au couteau sur le dessus
+
+![On décore](/img/galette-poire-chocolat/galette-poire-chocolat-step-8.jpg)
+
 9. Avec le dernier œuf, le battre et badigeonner le dessus de la tarte.
 
 ![On décore](/img/galette-poire-chocolat/galette-poire-chocolat-step-9.jpg)
 
 10. Enfourner 40 minutes à 180°C.
+
+![On déguste](/img/galette-poire-chocolat/galette-poire-chocolat-step-10.jpg)
 
 
 # Notes

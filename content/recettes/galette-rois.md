@@ -1,6 +1,6 @@
 ---
 title: Galette des rois (nature)
-date: 2023-01-23
+date: 2025-01-29
 tags: ["sucré", "pâtisserie", "desserts", "tartes"]
 duration: 1h
 thumbnail: "/img/galette-rois/galette-rois.jpg"
@@ -39,14 +39,21 @@ reste de la pâte feuilletée comme seconde pâte en bas.
 ![Le fond de tarte](/img/galette-rois/galette-rois-step-3.jpg)
 
 4. Étaler la pâte d'amandes sur le pâte du dessous.
+
+![Le fond de tarte](/img/galette-rois/galette-rois-step-4.jpg)
+
 5. Fermer avec le second disque (appuyer sur les bords)
 6. Dessiner au couteau sur le dessus
+
+![Le fond de tarte](/img/galette-rois/galette-rois-step-6.jpg)
+
 7. Avec le dernier œuf, le battre et badigeonner le dessus de la tarte.
 
 ![On décore](/img/galette-rois/galette-rois-step-7.jpg)
 
 8. Enfourner 40 minutes à 180°C.
 
+![Les galettes](/img/galette-rois/galette-rois-step-8.jpg)
 
 # Notes
 
