@@ -1,6 +1,6 @@
 ---
 title: Pâte Sablée
-date: 2023-111-29
+date: 2023-11-29
 tags: ["pâtisserie", "desserts", "pâtes"]
 duration: 2h30min
 ---
