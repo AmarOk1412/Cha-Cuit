@@ -1,6 +1,6 @@
 ---
 title: Pain naan (x6)
-date: 2023-12-18
+date: 2025-11-01
 tags: ["pain", "inde"]
 duration: 1h30
 thumbnail: "/img/pain-naan/pain-naan.jpg"
@@ -10,42 +10,39 @@ thumbnail: "/img/pain-naan/pain-naan.jpg"
 
 + 360g farine
 + 10g sel
-+ 25cl lait tiède
++ 12cl yogourt
++ 12cl eau chaude
++ 1 œuf
 + 10g de sucre
 + 10g levure instantanée
-+ 60ml yogourt nature
-+ Herbes ou ail
-+ Huile
++ Herbes
++ ail
++ 3 c. à soupe Huile d'olive
++ Beure
 
 # Équipement
 
 + 1 Bol
-+ 1 Four
-+ 1 Plaque de cuisson
-+ Papier parchemin
-+ 1 Rouleau à pâtisserie
++ 1 poêle
 
 ||
 
 # Préparation
 
-1. Mélanger la farine et le sel.
-2. Ajouter le lait, sucre, levure, yogourt.
-3. Pétrir à la main plusieurs minutes jusqu'à ce que la pâte soit élastique et pas trop collante.
-4. Laisser reposer dans un bol avec un torchon humide sur le dessus pendant 1 heure.
+1. Activer la levure dans de l'eau chaude avec le sucre pendant 5 minutes.
+2. Dans un bol, mettre le mélange de levure, ajouter l'huile d'olive, l'œuf, le sel, le yogurt, mélanger
+3. Ajouter la farine et pétrir. Si le mélange est trop liquide, ajouter de la farine pour former une boule qui se tient.
+4. Laisser reposer dans un endroit sombre, couvert d'un linge humide 1 heure, le temps que la boule gonfle.
 
 ![On laisser reposer](/img/pain-naan/pain-naan-step-4.jpg)
 
-5. Préchauffer le four à 250°C
-6. Sur un plan enfariné, couper la pâte en 6, aplatir pour former les pains.
+5. Découper en 6 petites boules et aplatir
 
 ![On coupe](/img/pain-naan/pain-naan-step-6.jpg)
 
-7. Badigeonner d'herbes et d'huile (des 2 côtés)
+6. Mélanger une bonne portion de beurre (pour beurrer les pains naans) et mélanger avec de l'ail et des herbes.
 
-![On badigeonne](/img/pain-naan/pain-naan-step-7.jpg)
-
-8. Placer sur la plaque et faire cuire 5 minutes (jusqu'à début de brunissement)
+7. Cuire les naans 2-3 minutes chaque face dans une poêle à feu assez fort et les beurrer au fur et à mesure de la cuisson.
 
 ![On cuit](/img/pain-naan/pain-naan-step-8.jpg)
 
