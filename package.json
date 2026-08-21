@@ -1,6 +1,6 @@
 {
   "name": "blist",
-  "version": "1.5.0",
+  "version": "2.1.0",
   "description": "Blist is a clean and fast blog theme for your Hugo site.",
   "main": "index.js",
   "repository": "https://github.com/apvarun/blist-hugo-theme",
@@ -13,12 +13,12 @@
     "build": "NODE_ENV=production hugo --gc"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.4.0",
-    "autoprefixer": "^10.2.5",
-    "postcss": "^8.2.10",
-    "postcss-cli": "^8.3.1",
-    "postcss-import": "^14.0.1",
-    "tailwindcss": "^2.1.1"
+    "@tailwindcss/typography": "^0.5.10",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.33",
+    "postcss-cli": "^11.0.0 ",
+    "postcss-import": "^16.0.0",
+    "tailwindcss": "^3.4.1"
   },
   "browserslist": [
     "last 1 version",

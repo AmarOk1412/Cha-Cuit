@@ -1,6 +1,6 @@
 baseurl = "https://cha-cu.it"
 metaDataFormat = "yaml"
-title = "Cha-Cuit"
+title = "Cha-Cu.it"
 theme = ["blist", "hugo-snap-gallery"]
 
 
@@ -101,3 +101,9 @@ theme = ["blist", "hugo-snap-gallery"]
   [markup.goldmark.renderer]
     # Enable to include inline HTML
     unsafe = true
+
+
+[security]
+  [security.node]
+    [security.node.permissions]
+      allowRead = ['.', '/**/browserslist-stats.json']
